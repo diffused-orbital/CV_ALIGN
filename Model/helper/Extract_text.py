@@ -1,5 +1,6 @@
 from PyPDF2 import PdfReader
 import docx
+import re
 
 # To read PDF files
 def read_pdf(file_path):
@@ -26,4 +27,10 @@ def read_docx(file_path):
     except Exception as e:
         print(f"Error reading DOCX file: {e}")
 
+    return text
+
+# Make the data clean and ordered
+def preprocess(text):
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip().lower()
     return text
