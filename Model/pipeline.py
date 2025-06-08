@@ -1,6 +1,3 @@
-!pip install PyPDF2
-!pip install python-docx
-
 import os
 import re
 import numpy as np

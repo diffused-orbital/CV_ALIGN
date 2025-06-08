@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+
+# Uploaded files
+uploads/
+
+# Pycache and compiled files
+__pycache__/
+*.pyc
+
+# OS and IDE files
+.DS_Store
+*.swp
+*.swo
+.vscode/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+
+# FastAPI auto-generated logs (optional)
+*.log
