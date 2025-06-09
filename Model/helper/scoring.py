@@ -1,6 +1,9 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTraansformer, util
+import synonym_mapping as syn
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def flatten_to_text(sections):
     if isinstance(sections, dict):
@@ -12,8 +15,8 @@ def flatten_to_text(sections):
 
 
 def compute_tfidf_score(resume_text, job_text, synonym_mapping):
-    resume_text = apply_synonym_mapping(resume_text, synonym_mapping)
-    job_text = apply_synonym_mapping(job_text, synonym_mapping)
+    resume_text = syn.apply_synonym_mapping(resume_text, synonym_mapping)
+    job_text = syn.apply_synonym_mapping(job_text, synonym_mapping)
 
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform([resume_text, job_text])
@@ -23,8 +26,8 @@ def compute_tfidf_score(resume_text, job_text, synonym_mapping):
 
 
 def compute_embedding_score(resume_text, job_text, synonym_mapping):
-    resume_text = apply_synonym_mapping(resume_text, synonym_mapping)
-    job_text = apply_synonym_mapping(job_text, synonym_mapping)
+    resume_text = syn.apply_synonym_mapping(resume_text, synonym_mapping)
+    job_text = syn.apply_synonym_mapping(job_text, synonym_mapping)
 
     embeddings = model.encode([resume_text, job_text], convert_to_tensor=True)
     score = util.pytorch_cos_sim(embeddings[0], embeddings[1]).item()
@@ -42,8 +45,8 @@ def compute_experience_score(resume_sections, job_sections, synonym_mapping):
     
     job_experience_text = flatten_to_text(job_sections.get('responsibilities', {}))
 
-    experience_text = apply_synonym_mapping(experience_text, synonym_mapping)
-    job_experience_text = apply_synonym_mapping(job_experience_text, synonym_mapping)
+    experience_text = syn.apply_synonym_mapping(experience_text, synonym_mapping)
+    job_experience_text = syn.apply_synonym_mapping(job_experience_text, synonym_mapping)
 
     embeddings = model.encode([experience_text, job_experience_text], convert_to_tensor=True)
     score = util.pytorch_cos_sim(embeddings[0], embeddings[1]).item()

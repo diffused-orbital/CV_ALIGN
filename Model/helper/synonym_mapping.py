@@ -16,9 +16,6 @@ with open('synonym_dict.json', 'w') as f:
     json.dump(default_synonyms, f)
 
 def create_synonym_mapping(text, json_mapping_file='synonym_dict.json'):
-    """
-    Create a synonym mapping by combining a static JSON dictionary and WordNet synonyms.
-    """
     # Load JSON-based dictionary (custom synonyms)
     with open(json_mapping_file, 'r') as f:
         json_mapping = json.load(f)
@@ -47,9 +44,6 @@ def create_synonym_mapping(text, json_mapping_file='synonym_dict.json'):
 
 
 def apply_synonym_mapping(text, synonym_mapping):
-    """
-    Replace synonyms in text with their root word from synonym_mapping.
-    """
     for key, synonyms in synonym_mapping.items():
         for synonym in synonyms:
             pattern = r'\b{}\b'.format(re.escape(synonym))
