@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-from Model.pipeline import score_cvs  # Adjusted import from Model directory
+from Model.main import score_cvs  # Adjusted import from Model directory
 
 app = FastAPI()
 
