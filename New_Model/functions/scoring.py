@@ -1,6 +1,7 @@
 import re
 import os
 # !pip install langchain_google_genai
+import requests
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -44,7 +45,7 @@ Weaknesses:
     return feedback
 
 # 8️⃣ Process all resumes and rank them
-def process_resumes(resume_folder: str, jd_file: str) -> list:
+def process_resumes(resume_urls: str, jd_file: str) -> list:
     jd_text = exjd.read_job_description(jd_file)
     jd_sections = exjd.extract_job_details(jd_text)
     jd_sections_tokenized = tk.tokenize_sections(jd_sections)
@@ -52,11 +53,11 @@ def process_resumes(resume_folder: str, jd_file: str) -> list:
     
     results = []
     #print(jd_sections_tokenized,"\n")
-    for file in os.listdir(resume_folder):
+    for url in resume_urls:
+        file = requests.get(url)
         if file.lower().endswith(('.pdf', '.docx')):
-            file_path = os.path.join(resume_folder, file)
-            print(f"Processing: {file_path}")
-            resume_text = exres.read_resume(file_path)
+            print(f"Processing: {file}")
+            resume_text = exres.read_resume(file)
             resume_sections = exres.extract_sections(resume_text)
             resume_sections_tokenized = tk.tokenize_sections(resume_sections)
             resume_text_flat = ' '.join([' '.join(words) for words in resume_sections_tokenized.values()])
