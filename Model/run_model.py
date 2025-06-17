@@ -1,5 +1,7 @@
 import os
-from helper import extract_text,extract_jd_entity,unified_cv_extraction,final_score as read,jd,ext,score
+from. helper import Extract_text as read, extract_jd_entity as jd, unified_cv_extraction as ext
+from. helper import final_score as score
+
 def read_resume_text(file_path):
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":

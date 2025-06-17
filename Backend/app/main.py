@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from typing import List
 import os
@@ -6,12 +6,21 @@ import sys
 import shutil
 from pathlib import Path
 
+from .database import Base, engine
+from .models import user  
+from app.routers import auth
+
+Base.metadata.create_all(bind=engine)
+
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-from Model.main import score_cvs  # Adjusted import from Model directory
+
+from New_Model.new_main import score_cvs_v2
+
 
 app = FastAPI()
-
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -37,9 +46,25 @@ async def score_resumes(
             shutil.copyfileobj(cv.file, f)
         cv_paths.append(cv_path)
 
-    # Run the scoring function
+    # Run the new scoring function
     try:
-        results = score_cvs(job_desc_path, cv_paths, top_k=5)
+        results = score_cvs_v2(job_desc_path, cv_paths, top_k=5)
         return JSONResponse(content={"results": results})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+    
+@app.post("/cloud_score/")
+async def cloud_score(company_name: str = Form(...)):
+    try:
+        cloud_name = "daom8lqfr"  # fixed cloud name
+        results = score_cvs_v2(cloud_name, company_name)
+        return JSONResponse(content={"results": results})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/upload_cv/")
+async def upload_cv(company_name: str = Form(...), file: UploadFile = File(...)):
+    # Just log for now
+    print(f"Resume received for {company_name}: {file.filename}")
+    return {"status": "ok", "company": company_name, "filename": file.filename}
+
