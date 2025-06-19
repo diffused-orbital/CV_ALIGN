@@ -1,6 +1,6 @@
 # new_main.py
 
-from functions import scoring as sc
+from New_Model.functions import scoring as sc
 import requests
 import os
 import cloudinary

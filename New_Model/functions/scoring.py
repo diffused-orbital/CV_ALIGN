@@ -1,15 +1,16 @@
 import re
 import os
-# !pip install langchain_google_genai
 import requests
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import extract_resume_sections as exres
-import extract_jd_sections as exjd
-import tokenize as tk
-import others as ot
-import pre_scoring as ps
+
+from . import extract_resume_sections as exres
+from . import extract_jd_sections as exjd
+from . import tokenize as tk
+from . import others as ot
+from . import pre_scoring as ps
+
 
 def score_and_feedback(resume_sections: dict, jd_sections: dict, final_score: float) -> str:
     resume_text = '\n'.join([f"{sec}: {' '.join(words)}" for sec, words in resume_sections.items()])

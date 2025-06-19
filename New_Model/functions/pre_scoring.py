@@ -1,5 +1,3 @@
-# !pip install langchain_google_genai
-# !pip install sentence_transformers
 import numpy as np
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -7,7 +5,8 @@ from langchain_core.output_parsers import StrOutputParser
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer, util
-import others as ot
+from . import others as ot  
+
 def generate_embeddings(texts: list) -> np.ndarray:
     embeddings_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     embeddings = embeddings_model.embed_documents(texts)

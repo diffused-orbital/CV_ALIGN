@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 
-SECRET_KEY = "your_secret_key"  # Replace this with a secure key or use environment variables
+SECRET_KEY = "cv_align_super_secret_key_123"  
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-def create_access_token(data: dict):
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=60)):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -30,7 +30,7 @@ from app.database import SessionLocal
 from app.models.user import User
 from datetime import datetime
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")  # matches your router prefix
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")  
 
 def get_db():
     db = SessionLocal()
@@ -57,4 +57,21 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception
+    return user
+
+from sqlalchemy.orm import Session
+from app.models.user import User
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def authenticate_user(db: Session, email: str, password: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
     return user
