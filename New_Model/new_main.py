@@ -19,11 +19,14 @@ cloudinary.config(
     api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
     secure=True
 )
+company = sys.argv[1]
+# Job Description file
+jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company}/job_description.pdf"
 
-if __name__ == "__main__":
-    company = sys.argv[1]
-    # Job Description file
-    jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company}/job_description.pdf"
+def score_cvs_v2(cloud_name,jd_file_url,company):
+    # company = sys.argv[1]
+    # # Job Description file
+    # jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company}/job_description.pdf"
     jd_response = requests.get(jd_file_url)
 
     # Resume folder - fetch all files using Cloudinary Admin API
