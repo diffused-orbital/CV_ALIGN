@@ -13,6 +13,9 @@ from app.utils.deps import get_current_user
 from app.models.user import User
 from fastapi import Depends
 
+from app.database import create_tables
+create_tables()
+
 Base.metadata.create_all(bind=engine)
 
 
@@ -92,3 +95,8 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 @app.get("/secure-data")
 def get_secure_data(current_user: User = Depends(get_current_user)):
     return {"message": f"Hello {current_user.email}, your role is {current_user.role}!"}
+
+from app.routers import job  
+app.include_router(job.router, tags=["Job Management"])  
+
+
