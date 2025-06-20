@@ -2,38 +2,35 @@
 # !pip install python-docx
 # !pip install langchain_google_genai
 # !pip install sentence_transformers
-
+import requests
+from io import BytesIO
+import fitz 
+import os
+from functions import scoring as sc
+import sys
+import cloudinary
+import cloudinary.api
+os.environ["GOOGLE_API_KEY"] = "AIzaSyCQwcOs4gYRDS2Iw-_b3DivFcIuVT6zVhw"
+    
+cloud_name = "daom8lqfr"
+cloudinary.config(
+    cloud_name=cloud_name,
+    api_key='833671224989892',
+    api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
+    secure=True
+)
 
 if __name__ == "__main__":
-    import requests
-    from io import BytesIO
-    import fitz 
-    import os
-    from functions import scoring as sc
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyCQwcOs4gYRDS2Iw-_b3DivFcIuVT6zVhw"
-    
-    cloud_name = "daom8lqfr"
-    company_name = "CompanyA"
-
+    company = sys.argv[1]
     # Job Description file
-    jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company_name}/job_description.pdf"
+    jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company}/job_description.pdf"
     jd_response = requests.get(jd_file_url)
 
     # Resume folder - fetch all files using Cloudinary Admin API
-    import cloudinary
-    import cloudinary.api
-
-    cloudinary.config(
-        cloud_name=cloud_name,
-        api_key='833671224989892',
-        api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
-        secure=True
-    )
-
     resume_urls = []
     result = cloudinary.api.resources(
         type='upload',
-        prefix=f'{company_name}/resumes/',
+        prefix=f'{company}/resumes/',
         resource_type='raw'
     )
 
