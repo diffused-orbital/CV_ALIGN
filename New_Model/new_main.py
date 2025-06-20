@@ -24,6 +24,7 @@ cloudinary.config(
 # jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company}/job_description.pdf"
 
 def score_cvs_v2(jd_file_url,company,cloud=cloud_name):
+    # jd_file_url = f"https://res.cloudinary.com/{cloud}/raw/upload/{company}/job_description.pdf"
     jd_response = requests.get(jd_file_url)
 
     # Resume folder - fetch all files using Cloudinary Admin API
