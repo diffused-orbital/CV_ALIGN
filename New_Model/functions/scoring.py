@@ -7,6 +7,7 @@ from langchain_core.output_parsers import StrOutputParser
 
 from . import extract_resume_sections as exres
 from . import extract_jd_sections as exjd
+from . import extract_text as exte
 from . import tokenize as tk
 from . import others as ot
 from . import pre_scoring as ps
@@ -47,7 +48,7 @@ Weaknesses:
 
 # 8️⃣ Process all resumes and rank them
 def process_resumes(resume_urls: str, jd_file: str) -> list:
-    jd_text = exjd.read_job_description(jd_file)
+    jd_text = exte.read_job_description(jd_file)
     jd_sections = exjd.extract_job_details(jd_text)
     jd_sections_tokenized = tk.tokenize_sections(jd_sections)
     jd_text_flat = ' '.join([' '.join(words) for words in jd_sections_tokenized.values()])
@@ -58,7 +59,7 @@ def process_resumes(resume_urls: str, jd_file: str) -> list:
         file = requests.get(url)
         if file.lower().endswith(('.pdf', '.docx')):
             print(f"Processing: {file}")
-            resume_text = exres.read_resume(file)
+            resume_text = exte.read_resume(file)
             resume_sections = exres.extract_sections(resume_text)
             resume_sections_tokenized = tk.tokenize_sections(resume_sections)
             resume_text_flat = ' '.join([' '.join(words) for words in resume_sections_tokenized.values()])
