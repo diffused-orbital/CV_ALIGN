@@ -6,7 +6,7 @@ import requests
 from io import BytesIO
 import fitz 
 import os
-from functions import scoring as sc
+from .functions import scoring as sc
 import sys
 import cloudinary
 import cloudinary.api
@@ -25,7 +25,8 @@ cloudinary.config(
 
 def score_cvs_v2(jd_file_url,company,cloud=cloud_name):
     # jd_file_url = f"https://res.cloudinary.com/{cloud}/raw/upload/{company}/job_description.pdf"
-    jd_response = requests.get(jd_file_url)
+    jd_response = requests.get(jd_file_url).text  # or `.text` depending on expected format
+
 
     # Resume folder - fetch all files using Cloudinary Admin API
     resume_urls = []

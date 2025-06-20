@@ -35,16 +35,11 @@ async def apply_for_job(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Simulate Cloudinary path — file should already be uploaded separately in real use
-    cloud_resume_path = f"{company_folder}/resumes/{file.filename}"
-    jd_path = job.description_path.replace("\\", "/")  # Ensure forward slashes for cloudinary path
+    cloud_name = "daom8lqfr"  # Your actual Cloudinary cloud name
+    jd_path = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{job.company}/job_description.pdf"
 
     try:
-        result = score_cvs_v2(
-            cloud_name="daom8lqfr",
-            jd_path=jd_path,
-            company_name=company_folder
-        )
+        result = score_cvs_v2(jd_file_url=jd_path, company=job.company)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in model evaluation: {str(e)}")
 
