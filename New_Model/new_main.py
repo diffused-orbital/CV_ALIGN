@@ -6,12 +6,12 @@ import os
 import cloudinary
 import cloudinary.api
 
-def score_cvs_v2(cloud_name: str, company_name: str):
+def score_cvs_v2(cloud_name: str,jd_path: str, company_name: str):
     os.environ["GOOGLE_API_KEY"] = "AIzaSyCQwcOs4gYRDS2Iw-_b3DivFcIuVT6zVhw"
 
     # Job Description file
-    jd_file_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{company_name}/job_description.pdf"
-    jd_response = requests.get(jd_file_url)
+    jd_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{jd_path.replace('\\', '/')}"
+    jd_response = requests.get(jd_url)
 
     # Resume folder - fetch all files using Cloudinary Admin API
     cloudinary.config(

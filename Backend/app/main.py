@@ -99,4 +99,6 @@ def get_secure_data(current_user: User = Depends(get_current_user)):
 from app.routers import job  
 app.include_router(job.router, tags=["Job Management"])  
 
+from app.routers import application
+app.include_router(application.router)
 

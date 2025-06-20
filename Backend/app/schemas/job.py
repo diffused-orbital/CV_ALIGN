@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
-class JobCreate(BaseModel):
-    title: str
-    company: str
-    description_path: str  
+# class JobCreate(BaseModel):
+#     title: str
+#     company: str
+#     description_path: str  
 
 class JobOut(BaseModel):
     id: int
