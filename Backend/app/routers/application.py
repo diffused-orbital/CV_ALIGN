@@ -54,7 +54,7 @@ async def apply_for_job(
     application = Application(
         job_id=job.id,
         user_id=current_user.id,
-        resume_path=cloud_resume_path,
+        resume_path=jd_path,
         score=score,
         feedback=feedback,
         created_at=datetime.utcnow(),
