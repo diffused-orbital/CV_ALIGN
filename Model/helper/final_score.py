@@ -1,5 +1,5 @@
-import scoring as sc
-import synonym_mapping as syn
+from . import scoring as sc
+from . import synonym_mapping as syn
 
 def compute_final_score(tfidf_score, embedding_score, experience_score,
                         weights={'tfidf': 0.3, 'embedding': 0.5, 'experience': 0.2}):

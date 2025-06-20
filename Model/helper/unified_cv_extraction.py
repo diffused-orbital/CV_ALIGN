@@ -1,5 +1,5 @@
-import extract_cv_sections as sect
-import extract_cv_entity as ent
+from . import extract_cv_sections as sect
+from . import extract_cv_entity as ent
 
 def extract_resume_entities(full_text):
     # Extract sections

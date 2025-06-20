@@ -1,7 +1,7 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import SentenceTraansformer, util
-import synonym_mapping as syn
+from sentence_transformers import SentenceTransformer, util
+from . import synonym_mapping as syn
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
