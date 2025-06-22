@@ -1,65 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.application import Application
 from app.models.user import User
 from app.models.job import Job
+from app.models.application import Application
 from app.routers.auth import get_current_user
-from New_Model.new_main import score_cvs_v2
 import shutil
 import os
-from datetime import datetime
+import uuid
 
-router = APIRouter()
+router = APIRouter(tags=["Applications"])
 
 @router.post("/apply")
-async def apply_for_job(
+def apply_to_job(
     job_id: int = Form(...),
+    cgpa: float = Form(...),
+    institute: str = Form(...),
+    degree: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != "candidate":
-        raise HTTPException(status_code=403, detail="Only candidates can apply for jobs.")
-
+    # Check if job exists
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found.")
+        raise HTTPException(status_code=404, detail="Job not found")
 
-    # Save the uploaded resume to the cloud folder structure
-    company_folder = job.company.replace(" ", "_")
-    resume_dir = f"uploads/{company_folder}/resumes"
-    os.makedirs(resume_dir, exist_ok=True)
-    file_path = os.path.join(resume_dir, file.filename)
+    # Generate a unique filename
+    file_ext = file.filename.split(".")[-1]
+    filename = f"{uuid.uuid4()}.{file_ext}"
+    upload_dir = f"uploads/{job.company}/resumes"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, filename)
 
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    cloud_name = "daom8lqfr"  # Your actual Cloudinary cloud name
-    jd_path = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{job.company}/job_description.pdf"
-
-    try:
-        result = score_cvs_v2(jd_file_url=jd_path, company=job.company)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error in model evaluation: {str(e)}")
-
-    # Extract candidate's score and feedback from result
-    matched_result = next((r for r in result if r['resume'].endswith(file.filename)), None)
-    if not matched_result:
-        raise HTTPException(status_code=500, detail="Scoring failed to return result for this resume.")
-
-    score = matched_result['score']
-    feedback = matched_result['feedback']
-
     application = Application(
-        job_id=job.id,
-        user_id=current_user.id,
-        resume_path=jd_path,
-        score=score,
-        feedback=feedback,
-        created_at=datetime.utcnow(),
-        status="pending"
-    )
+    job_id=job.id,
+    user_id=current_user.id,
+    resume_path=file_path.replace("\\", "/"),  
+    status=0,
+    cgpa=cgpa,
+    institute=institute,
+    degree=degree
+)
+
 
     db.add(application)
     db.commit()
@@ -67,7 +53,5 @@ async def apply_for_job(
 
     return {
         "message": "Application submitted successfully!",
-        "application_id": application.id,
-        "score": score,
-        "feedback": feedback
+        "application_id": application.id
     }

@@ -102,3 +102,9 @@ app.include_router(job.router, tags=["Job Management"])
 from app.routers import application
 app.include_router(application.router)
 
+from app.routers import candidate
+app.include_router(candidate.router)
+
+from app.routers import recruiter
+app.include_router(recruiter.router)
+
