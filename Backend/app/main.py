@@ -108,3 +108,5 @@ app.include_router(candidate.router)
 from app.routers import recruiter
 app.include_router(recruiter.router)
 
+from fastapi.staticfiles import StaticFiles
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
