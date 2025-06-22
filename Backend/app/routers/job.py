@@ -30,11 +30,29 @@ def upload_job_with_pdf(
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(jd_file.file, buffer)
 
+    # Cloudinary Upload Section
+    import cloudinary.uploader
+
+    safe_company_name = company.replace(" ", "_")
+    cloudinary_path = f"{safe_company_name}/job_description"
+
+    # Upload job description to Cloudinary
+    cloudinary_result = cloudinary.uploader.upload(
+        file_location,
+        resource_type="raw",
+        type="upload",
+        public_id=cloudinary_path,
+        overwrite=True
+    )
+
+    cloudinary_jd_url = cloudinary_result["secure_url"]
+
+
     # Save job in DB
     new_job = Job(
         title=title,
         company=company,
-        description_path=file_location,
+        description_path=cloudinary_jd_url,
         posted_by=current_user.id,
         created_at=datetime.utcnow()
     )
@@ -46,5 +64,6 @@ def upload_job_with_pdf(
     return {
         "message": "Job posted successfully!",
         "job_id": new_job.id,
-        "file_path": file_location
+        "cloudinary_url": cloudinary_jd_url
+
     }
