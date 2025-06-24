@@ -27,11 +27,17 @@ def apply_to_job(
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    company_name = job.company
+    title = job.title
+
+    # Safely format names
+    safe_company_name = company_name.replace(" ", "_")
+    safe_title = title.replace(" ", "_")
 
     # Generate a unique filename
     file_ext = file.filename.split(".")[-1]
     filename = f"{uuid.uuid4()}.{file_ext}"
-    safe_company_name = job.company.replace(" ", "_")
+    #safe_company_name = job.company.replace(" ", "_")
     upload_dir = f"uploads/{safe_company_name}/resumes"
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, filename)
@@ -41,7 +47,7 @@ def apply_to_job(
         shutil.copyfileobj(file.file, buffer)
 
     # Upload file to Cloudinary
-    cloudinary_path = f"{safe_company_name}/resumes/{filename}"
+    cloudinary_path = f"{safe_company_name}/{safe_title}/resumes/{filename}"
     cloudinary.uploader.upload(
         file_path,
         resource_type="raw",
@@ -64,9 +70,9 @@ def apply_to_job(
     db.refresh(application)
 
     # Trigger model
-    jd_file_url = f"https://res.cloudinary.com/daom8lqfr/raw/upload/{safe_company_name}/job_description.pdf"
+    #jd_file_url = f"https://res.cloudinary.com/daom8lqfr/raw/upload/{safe_company_name}/job_description.pdf"
     try:
-        score_cvs_v2(jd_file_url, safe_company_name)
+        score_cvs_v2(safe_company_name,safe_title,)
     except Exception as e:
         print(f"⚠️ Scoring model failed: {e}")
 
@@ -74,3 +80,4 @@ def apply_to_job(
         "message": "Application submitted successfully!",
         "application_id": application.id
     }
+ 
