@@ -1,36 +1,40 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Application, Job
+from app.models.user import User
+from app.models.application import Application
+from app.models.job import Job
 from app.routers.auth import get_current_user
-from app.schemas.user import UserOut
 
-router = APIRouter()
+router = APIRouter(tags=["Candidate"])
 
-status_map = {
-    0: "pending",
-    1: "accepted",
-    2: "rejected"
-}
-
-@router.get("/dashboard/candidate")
+@router.get("/candidate/dashboard")
 def candidate_dashboard(
-    current_user: UserOut = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     if current_user.role != "candidate":
-        raise HTTPException(status_code=403, detail="Only candidates can access this route.")
+        raise HTTPException(status_code=403, detail="Only candidates can view this dashboard.")
 
     applications = db.query(Application).filter(Application.user_id == current_user.id).all()
-    result = []
 
+    dashboard_data = []
     for app in applications:
         job = db.query(Job).filter(Job.id == app.job_id).first()
-        if job:
-            result.append({
-                "job_title": job.title,
-                "company": job.company,
-                "status": status_map.get(app.status, "unknown")
-            })
+        if not job:
+            continue
 
-    return {"applications": result}
+        dashboard_data.append({
+            "job_title": job.title,
+            "company": job.company,
+            "status": (
+                "Pending" if app.status == 0 else
+                "Accepted" if app.status == 1 else
+                "Rejected"
+            )
+        })
+
+    return {
+        "candidate": current_user.username,
+        "applications": dashboard_data
+    }
