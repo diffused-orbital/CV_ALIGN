@@ -34,7 +34,8 @@ def upload_job_with_pdf(
     import cloudinary.uploader
 
     safe_company_name = company.replace(" ", "_")
-    cloudinary_path = f"{safe_company_name}/job_description"
+    safe_title = title.replace(" ", "_")
+    cloudinary_path = f"{safe_company_name}/{safe_title}/job_description"
 
     # Upload job description to Cloudinary
     cloudinary_result = cloudinary.uploader.upload(
@@ -65,5 +66,4 @@ def upload_job_with_pdf(
         "message": "Job posted successfully!",
         "job_id": new_job.id,
         "cloudinary_url": cloudinary_jd_url
-
     }
