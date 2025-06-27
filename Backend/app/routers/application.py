@@ -8,11 +8,17 @@ from app.routers.auth import get_current_user
 import shutil
 import os
 import uuid
+import cloudinary
 import cloudinary.uploader
 from New_Model.new_main import score_cvs_v2  
 
 router = APIRouter(tags=["Applications"])
-
+cloudinary.config(
+    cloud_name="daom8lqfr",
+    api_key='833671224989892',
+    api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
+    secure=True
+)
 @router.post("/apply")
 def apply_to_job(
     job_id: int = Form(...),
@@ -38,7 +44,7 @@ def apply_to_job(
     file_ext = file.filename.split(".")[-1]
     filename = f"{uuid.uuid4()}.{file_ext}"
     #safe_company_name = job.company.replace(" ", "_")
-    upload_dir = f"uploads/{safe_company_name}/resumes"
+    upload_dir = f"uploads/{safe_company_name}/{safe_title}/resumes"
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, filename)
 
@@ -72,7 +78,7 @@ def apply_to_job(
     # Trigger model
     #jd_file_url = f"https://res.cloudinary.com/daom8lqfr/raw/upload/{safe_company_name}/job_description.pdf"
     try:
-        score_cvs_v2(safe_company_name,safe_title,)
+        score_cvs_v2(safe_company_name,safe_title)
     except Exception as e:
         print(f"⚠️ Scoring model failed: {e}")
 
