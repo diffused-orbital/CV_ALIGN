@@ -4,6 +4,7 @@ import Login from './pages/login';
 import Register from './pages/register';  
 import CandidateDashboard from './pages/candidatedashboard';
 
+
 export default function App() {
   return (
     <Routes>
