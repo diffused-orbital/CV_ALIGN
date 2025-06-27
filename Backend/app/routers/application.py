@@ -86,4 +86,36 @@ def apply_to_job(
         "message": "Application submitted successfully!",
         "application_id": application.id
     }
+
+from fastapi import Path
+from app.models.user import User
+
+@router.post("/application/{application_id}/accept")
+def accept_application(
+    application_id: int = Path(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    application.status = 1  # Accepted
+    db.commit()
+    return {"message": "Application accepted successfully", "application_id": application_id}
+
+
+@router.post("/application/{application_id}/reject")
+def reject_application(
+    application_id: int = Path(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    application.status = -1  # Rejected
+    db.commit()
+    return {"message": "Application rejected successfully", "application_id": application_id}
  

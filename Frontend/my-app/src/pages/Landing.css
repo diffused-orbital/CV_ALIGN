@@ -1,0 +1,89 @@
+.landing-container {
+  width: 100vw;   
+  height: 100vh;  
+  position: fixed; 
+  top: 0;
+  left: 0;
+  background-image: url("background.jpg");
+  background-size: cover;
+  background-position: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  box-sizing: border-box; 
+  z-index: 0; 
+}
+
+.landing-header {
+  display: flex;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 800;
+  font-style: normal;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+}
+
+.landing-main {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.landing-footer {
+  display: flex;
+  justify-content: center;
+  min-height: 80px;
+  align-items: center;
+}
+
+.logo {
+  font-size: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+
+.quote {
+  font-size: 2rem;
+  text-align: center;
+  max-width: 800px;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.get-started {
+  font-size: 1.25rem;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 30px;
+  background-color: black;
+  color: white;
+  cursor: pointer;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+  transition: all 0.3s ease;
+}
+
+.get-started:hover {
+  color: black;  
+  background-color: white;
+  font-family: "Orbitron", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+  transform: scale(1.05);
+}
+
