@@ -22,6 +22,11 @@ export default function Register() {
           <input type="email" placeholder="Email" required />
           <input type="text" placeholder="Username" required />
           <input type="password" placeholder="Password" required />
+          <select className="role-select" required>
+            <option value="" disabled selected>Select Role</option>
+            <option value="candidate">Candidate</option>
+            <option value="recruiter">Recruiter</option>
+          </select>
           <button type="submit">Register</button>
         </form>
 
