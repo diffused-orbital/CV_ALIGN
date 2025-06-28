@@ -183,3 +183,33 @@
   color: red;
 }
 
+.apply-button {
+  margin: 1.5rem auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.7rem 2rem;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: 30px;
+  background: rgba(50,50,50,0.98);
+  color: white;
+  font-family: "Space Grotesk", sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apply-button:hover {
+  background-color: white;
+  color: black;
+  transform: scale(1.05);
+}
+
+.apply-button:hover .apply-icon svg {
+  fill: black;
+}
+
+.apply-icon svg {
+  fill: white;
+  transition: fill 0.3s ease;
+}
