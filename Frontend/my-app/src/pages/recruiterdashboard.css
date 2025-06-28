@@ -203,7 +203,7 @@
   font-size: 1.2rem;
   border: none;
   border-radius: 30px;
-  background-color: black;
+  background: rgba(50,50,50,0.98);
   color: white;
   font-family: "Space Grotesk", sans-serif;
   cursor: pointer;
