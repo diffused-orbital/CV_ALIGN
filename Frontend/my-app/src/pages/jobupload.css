@@ -1,0 +1,104 @@
+.job-upload-container {
+  width: 100vw;
+  height: 100vh;
+  background: url("background.jpg") no-repeat center center/cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.job-upload-box {
+  background: rgba(120, 120, 120, 0.13);
+  height: min-content;
+  padding: 1.2rem 1.5rem;
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 330px;
+  max-width: 94%;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.22);
+}
+
+.form-title {
+  text-align: center;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.job-upload-box label {
+  font-size: 0.93rem;
+  color: white;
+  margin-bottom: 0.1rem;
+}
+
+.job-upload-box input {
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.97rem;
+  margin-bottom: 0.1rem;
+}
+
+.job-upload-box input[type="file"] {
+  background-color: grey;
+  cursor: pointer;
+  padding: 0.3rem 0.2rem;
+  font-size: 0.92rem;
+}
+
+.submit-btn {
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.98rem;
+  border: none;
+  border-radius: 22px;
+  background-color: black;
+  color: white;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.submit-btn:hover {
+  background-color: white;
+  color: black;
+  transform: scale(1.04);
+}
+
+.home-button {
+  position: fixed;   
+  top: 20px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;     /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  transition: background 0.3s, color 0.3s, transform 0.3s;
+  z-index: 100;
+  padding: 0;
+}
+
+.home-button:hover {
+  background-color: #d3d3d3;
+  color: black;
+  transform: scale(1.1);
+}
+
+.home-button svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  display: block;
+}

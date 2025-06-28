@@ -72,7 +72,7 @@ export default function Login() {
         </form>
 
         <p className="register-link">
-          New to CV ALIGNER? <span onClick={() => navigate('/register')}>Register</span>
+          New to CV ALIGNER ? <span onClick={() => navigate('/register')}>Register</span>
         </p>
       </div>
     </div>

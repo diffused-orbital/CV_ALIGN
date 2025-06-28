@@ -1,0 +1,193 @@
+.recruiter-dashboard-bg {
+  font-family: 'Space Grotesk', sans-serif;
+  background: url('./background.jpg') no-repeat center center/cover;
+  min-height: 100vh;
+  min-width: 100vw;
+  position: fixed;
+  top: 0; left: 0;
+  color: white;
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+}
+
+.brand {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  font-family: 'Orbitron', sans-serif;
+  color: #00ff90;
+  font-size: 2.2rem;
+  letter-spacing: 2px;
+  z-index: 10;
+  user-select: none;
+}
+
+.logout-btn {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  background: rgba(255,255,255,0.10);
+  border: none;
+  border-radius: 50%;
+  padding: 0.7rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn:hover {
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transform: scale(1.08);
+}
+
+.logout-btn svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  transition: fill 0.2s;
+}
+
+.logout-btn:hover svg {
+  fill: #111;
+}
+
+.dashboard-center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding-top: 8vh;
+}
+
+.greeting {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.summary-row {
+  display: flex;
+  gap: 2.5rem;
+  margin-bottom: 2.5rem;
+  justify-content: center;
+}
+
+.summary-box {
+  background: rgba(30,30,30,0.8);
+  border-radius: 20px;
+  padding: 2rem 2.5rem;
+  min-width: 220px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  backdrop-filter: blur(10px);
+  transition: transform 0.2s cubic-bezier(.4,2,.6,1), box-shadow 0.2s;
+}
+
+.summary-box:hover,
+.summary-box:focus {
+  transform: scale(1.05);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+  z-index: 1;
+}
+
+
+.summary-title {
+  font-size: 1.15rem;
+  margin-bottom: 0.7rem;
+  font-weight: 500;
+  color: #e3e3e3;
+}
+
+.summary-value {
+  font-size: 2.1rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.table-outer-wrap {
+  width: 70vw;
+  max-width: 900px;
+  margin: 0 auto;
+  background: transparent;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: none;
+  margin-top: 2.5rem;
+  /* Height for scrollable area */
+  max-height: 340px;
+  /* Only table scrolls, not the page */
+  overflow-y: auto;
+}
+
+.job-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
+}
+
+.job-table thead th {
+  position: sticky;
+  top: 0;
+  background: rgba(200,200,200,0.35);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 1.2rem 0.5rem;
+  z-index: 2;
+  letter-spacing: 0.5px;
+  border-radius: 15px 15px 0 0;
+  backdrop-filter: blur(8px);
+}
+
+.job-table tbody tr {
+  background: rgba(30,30,30,0.85);
+  cursor: pointer;
+  transition: background 0.18s, transform 0.18s;
+  border-radius: 0 0 15px 15px;
+}
+
+.job-table tbody tr:not(:last-child) {
+  border-bottom: 8px solid transparent;
+}
+
+.job-table tbody tr:hover,
+.job-table tbody tr:focus {
+  background: rgba(255,255,255,0.13);
+  transform: scale(1.03);
+  outline: none;
+}
+
+.job-table td {
+  color: #fff;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 1.1rem 0.5rem;
+  border: none;
+  border-radius: 0 0 15px 15px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .table-outer-wrap {
+    width: 95vw;
+    max-width: 99vw;
+  }
+  .summary-row {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .summary-box {
+    min-width: unset;
+    width: 80vw;
+  }
+}
