@@ -1,0 +1,119 @@
+/* Outer container */
+.job-details-container {
+  padding: 2rem;
+  font-family: 'Space Grotesk', sans-serif;
+  color: #eaeaea;
+  background: none; /* Wallpaper assumed set globally */
+  min-height: 100vh;
+  overflow-x: hidden; /* Prevent wallpaper or container from scrolling */
+}
+
+/* Heading */
+.job-heading {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #fff;
+}
+
+/* Scrollable table wrapper */
+.table-scroll-container {
+  overflow-x: auto;  /* Horizontal scroll only inside this */
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.08);
+}
+
+/* Table styling */
+.candidate-table {
+  width: 100%;
+  min-width: 1000px; /* Enables scrolling if screen < 1000px */
+  border-collapse: collapse;
+}
+
+.candidate-table th,
+.candidate-table td {
+  padding: 12px 16px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.candidate-table thead {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(6px);
+}
+
+.candidate-table tbody tr {
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.candidate-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  transform: scale(1.01);
+}
+
+/* Download Link */
+.download-link {
+  color: #90caf9;
+  text-decoration: underline;
+}
+
+/* Accept/Reject Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-buttons button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.accept-button {
+  background-color: #4caf50;
+  color: white;
+}
+.accept-button:hover {
+  background-color: #43a047;
+}
+
+.reject-button {
+  background-color: #f44336;
+  color: white;
+}
+.reject-button:hover {
+  background-color: #e53935;
+}
+
+/* Expanded Row */
+.expanded-row {
+  background-color: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s ease;
+}
+
+/* Feedback Box */
+.feedback-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.feedback-content {
+  font-style: italic;
+  color: #ccc;
+}
