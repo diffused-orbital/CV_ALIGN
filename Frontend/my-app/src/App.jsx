@@ -15,7 +15,7 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
       <Route path="/candidate/upload" element={<CandidateUpload />} />
-      <Route path='/recruiter/upload' element={<JobUpload />} />
+      <Route path="/upload-job" element={<JobUpload />} />
       <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
     </Routes>
   );
