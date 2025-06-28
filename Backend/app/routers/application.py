@@ -1,24 +1,26 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Path
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.models.job import Job
 from app.models.application import Application
 from app.routers.auth import get_current_user
+from New_Model.new_main import score_cvs_v2
 import shutil
 import os
 import uuid
 import cloudinary
 import cloudinary.uploader
-from New_Model.new_main import score_cvs_v2  
 
 router = APIRouter(tags=["Applications"])
+
 cloudinary.config(
     cloud_name="daom8lqfr",
     api_key='833671224989892',
     api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
     secure=True
 )
+
 @router.post("/apply")
 def apply_to_job(
     job_id: int = Form(...),
@@ -33,17 +35,27 @@ def apply_to_job(
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    # Prevent duplicate applications
+    existing = db.query(Application).filter(
+        Application.job_id == job.id,
+        Application.user_id == current_user.id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="You have already applied to this job.")
+
+    # Validate file format
+    if not file.filename.endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF resumes are allowed.")
+
     company_name = job.company
     title = job.title
-
-    # Safely format names
     safe_company_name = company_name.replace(" ", "_")
     safe_title = title.replace(" ", "_")
 
-    # Generate a unique filename
+    # Generate unique filename
     file_ext = file.filename.split(".")[-1]
     filename = f"{uuid.uuid4()}.{file_ext}"
-    #safe_company_name = job.company.replace(" ", "_")
     upload_dir = f"uploads/{safe_company_name}/{safe_title}/resumes"
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, filename)
@@ -52,16 +64,19 @@ def apply_to_job(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Upload file to Cloudinary
+    # Upload to Cloudinary
     cloudinary_path = f"{safe_company_name}/{safe_title}/resumes/{filename}"
-    cloudinary.uploader.upload(
-        file_path,
-        resource_type="raw",
-        public_id=cloudinary_path,
-        overwrite=True
-    )
+    try:
+        cloudinary.uploader.upload(
+            file_path,
+            resource_type="raw",
+            public_id=cloudinary_path,
+            overwrite=True
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {e}")
 
-    # Insert application into DB
+    # Insert application in DB
     application = Application(
         job_id=job.id,
         user_id=current_user.id,
@@ -75,10 +90,9 @@ def apply_to_job(
     db.commit()
     db.refresh(application)
 
-    # Trigger model
-    #jd_file_url = f"https://res.cloudinary.com/daom8lqfr/raw/upload/{safe_company_name}/job_description.pdf"
+    # Trigger scoring
     try:
-        score_cvs_v2(safe_company_name,safe_title)
+        score_cvs_v2(safe_company_name, safe_title)
     except Exception as e:
         print(f"⚠️ Scoring model failed: {e}")
 
@@ -86,9 +100,6 @@ def apply_to_job(
         "message": "Application submitted successfully!",
         "application_id": application.id
     }
-
-from fastapi import Path
-from app.models.user import User
 
 @router.post("/application/{application_id}/accept")
 def accept_application(
@@ -104,7 +115,6 @@ def accept_application(
     db.commit()
     return {"message": "Application accepted successfully", "application_id": application_id}
 
-
 @router.post("/application/{application_id}/reject")
 def reject_application(
     application_id: int = Path(...),
@@ -118,4 +128,3 @@ def reject_application(
     application.status = -1  # Rejected
     db.commit()
     return {"message": "Application rejected successfully", "application_id": application_id}
- 
