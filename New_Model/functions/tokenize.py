@@ -3,9 +3,9 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet as wn
 
-# nltk.download('wordnet')
-# nltk.download('punkt_tab')
-# nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
 
 
 def tokenize_section(text: str) -> list:
