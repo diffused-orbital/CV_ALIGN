@@ -47,8 +47,8 @@ Weaknesses:
     return feedback
 
 # 8️⃣ Process all resumes and rank them
-def process_resumes(resume_urls: str, jd_file: str) -> list:
-    jd_text = exte.read_job_description(jd_file)
+def process_resumes(resume_urls: list, jd_file_url: str) -> list:
+    jd_text = exte.read_job_description(jd_file_url)
     jd_sections = exjd.extract_job_details(jd_text)
     jd_sections_tokenized = tk.tokenize_sections(jd_sections)
     jd_text_flat = ' '.join([' '.join(words) for words in jd_sections_tokenized.values()])
@@ -56,32 +56,29 @@ def process_resumes(resume_urls: str, jd_file: str) -> list:
     results = []
     #print(jd_sections_tokenized,"\n")
     for url in resume_urls:
-        file = requests.get(url)
-        if file.lower().endswith(('.pdf', '.docx')):
-            print(f"Processing: {file}")
-            resume_text = exte.read_resume(file)
-            resume_sections = exres.extract_sections(resume_text)
-            resume_sections_tokenized = tk.tokenize_sections(resume_sections)
-            resume_text_flat = ' '.join([' '.join(words) for words in resume_sections_tokenized.values()])
+        resume_text = exte.read_resume(url)
+        resume_sections = exres.extract_sections(resume_text)
+        resume_sections_tokenized = tk.tokenize_sections(resume_sections)
+        resume_text_flat = ' '.join([' '.join(words) for words in resume_sections_tokenized.values()])
             
-            embed_score = ps.embedding_score(resume_sections_tokenized, jd_sections_tokenized)
-            tfidf = ps.tfidf_score(resume_text_flat, jd_text_flat)
-            combined_text = resume_text_flat + ' ' + jd_text_flat
-            synonym_mapping = ot.create_synonym_mapping(combined_text)
-            exp_score = ps.experience_score(resume_sections,jd_sections, synonym_mapping)
+        embed_score = ps.embedding_score(resume_sections_tokenized, jd_sections_tokenized)
+        tfidf = ps.tfidf_score(resume_text_flat, jd_text_flat)
+        combined_text = resume_text_flat + ' ' + jd_text_flat
+        synonym_mapping = ot.create_synonym_mapping(combined_text)
+        exp_score = ps.experience_score(resume_sections,jd_sections, synonym_mapping)
             
-            final_score = 0.5 * embed_score + 0.3 * tfidf + 0.2 * exp_score
+        final_score = 0.5 * embed_score + 0.3 * tfidf + 0.2 * exp_score
             
-            feedback = score_and_feedback(resume_sections_tokenized, jd_sections_tokenized, final_score)
-            print("Embedding score: ",embed_score)
-            print("TF-IDF score: ",tfidf)
-            print("Experience score: ",exp_score)
-            candidate_name = re.split('_CV', file, flags=re.IGNORECASE)[0]
-            results.append({
-                "Name": candidate_name,
-                "Score": final_score,
-                "Feedback": feedback
-            })
+        feedback = score_and_feedback(resume_sections_tokenized, jd_sections_tokenized, final_score)
+            # print("Embedding score: ",embed_score)
+            # print("TF-IDF score: ",tfidf)
+            # print("Experience score: ",exp_score)
+        candidate_name = re.split('_CV', file, flags=re.IGNORECASE)[0]
+        results.append({
+            "Name": candidate_name,
+            "Score": final_score,
+            "Feedback": feedback
+        })
     
     # Sort by final score
     results.sort(key=lambda x: x["Score"], reverse=True)

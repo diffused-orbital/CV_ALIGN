@@ -5,7 +5,7 @@ import os
 import sys 
 import shutil
 from pathlib import Path
-
+from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
 from .models import user  
 from app.routers import auth
@@ -26,7 +26,17 @@ from New_Model.new_main import score_cvs_v2
 
 
 app = FastAPI()
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+
+origins = [
+    "https://localhost:5173"
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -110,3 +120,9 @@ app.include_router(recruiter.router)
 
 from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+
+
+"""Incoming user data: {'email': 'arnavtiku@gmail.com', 
+'username': 'Tiku_Arnav', 'password': 'Password@2025', 
+'role': 'candidate'}"""

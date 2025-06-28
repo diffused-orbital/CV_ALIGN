@@ -8,7 +8,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserOut
 from passlib.context import CryptContext
 from datetime import timedelta
-from app.utils.token import get_current_user
+from app.utils.deps import get_current_user
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -24,15 +24,30 @@ def get_db():
 
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    hashed_pw = pwd_context.hash(user.password)
-    new_user = User(username=user.username, email=user.email, hashed_password=hashed_pw, role=user.role)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    try:
+        print("📥 Incoming user data:", user.dict())
+        existing_email = db.query(User).filter(User.email == user.email).first()
+        if existing_email:
+            print("⚠️ Email already exists:", user.email)
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        existing_username = db.query(User).filter(User.username == user.username).first()
+        if existing_username:
+            print("⚠️ Username already exists:", user.username)
+            raise HTTPException(status_code=400, detail="Username already taken")
+     
+        hashed_pw = pwd_context.hash(user.password)
+        new_user = User(username=user.username, email=user.email, hashed_password=hashed_pw, role=user.role)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        print("✅ Registered new user:", new_user.email)
+        return new_user
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e)) 
 
 # @router.post("/login")
 # def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
