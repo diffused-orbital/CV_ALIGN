@@ -11,7 +11,7 @@ export default function App() {
       <Route index element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/dashboard/candidate" element={<CandidateDashboard />} />
+      <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
     </Routes>
   );
 }

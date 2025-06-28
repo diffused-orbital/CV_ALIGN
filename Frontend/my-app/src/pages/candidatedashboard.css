@@ -8,6 +8,13 @@
   flex-direction: column;
   justify-content: flex-end;
 }
+.dashboard-empty {
+  text-align: center;
+  padding: 1rem;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: #ccc;
+}
 
 .dashboard-header {
   position: absolute;
