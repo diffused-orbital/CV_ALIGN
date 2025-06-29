@@ -139,6 +139,7 @@ python new_main.py
 
 - [**Sanidhya Srivastava**](https://github.com/diffused-orbital)
 - [**Arnav Tiku**](https://github.com/T-arn21)
+- [**Devansh Jangid**](https://github.com/devanshjangid2005)
 
 ---
 
