@@ -89,8 +89,6 @@ Resume File
    │     (custom logic on titles & dates)
    │
    ├─▶ 6. LLM Verdict via LangChain + Gemini
-   │
-   └─▶ 7. Feedback Flow via LangGraph
 ```
 
 ---
