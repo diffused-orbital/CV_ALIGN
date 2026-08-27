@@ -3,6 +3,14 @@ import os
 import sys
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
+
+# Windows consoles default to cp1252, which can't encode the emoji used in
+# debug prints; that would raise UnicodeEncodeError and 500 the request.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 from .database import Base, engine
 from .models import user
 from app.routers import auth
