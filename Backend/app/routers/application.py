@@ -29,6 +29,16 @@ def _split_feedback(feedback: str):
     return feedback.strip() or None, None
 
 
+def _authorize_status_change(db: Session, application: Application, current_user: User):
+    """Only the recruiter who posted the job may change an application's status."""
+    if current_user.role != "recruiter":
+        raise HTTPException(status_code=403, detail="Only recruiters can update application status.")
+
+    job = db.query(Job).filter(Job.id == application.job_id).first()
+    if not job or job.posted_by != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only manage applications for your own jobs.")
+
+
 def _persist_scores(db: Session, job_id: int, ranked_results):
     """Map ranked model results back onto Application rows and save them.
 
@@ -66,6 +76,10 @@ def apply_to_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Only candidates can apply to jobs
+    if current_user.role != "candidate":
+        raise HTTPException(status_code=403, detail="Only candidates can apply to jobs.")
+
     # Check if job exists
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
@@ -147,6 +161,8 @@ def accept_application(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
+    _authorize_status_change(db, application, current_user)
+
     application.status = 1  # Accepted
     db.commit()
     return {"message": "Application accepted successfully", "application_id": application_id}
@@ -161,6 +177,8 @@ def reject_application(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    application.status = -1  # Rejected
+    _authorize_status_change(db, application, current_user)
+
+    application.status = 2  # Rejected
     db.commit()
     return {"message": "Application rejected successfully", "application_id": application_id}

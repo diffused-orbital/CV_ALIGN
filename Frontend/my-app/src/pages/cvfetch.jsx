@@ -54,7 +54,7 @@ export default function JobDetails() {
       );
       setCandidates((prev) =>
         prev.map((c, i) =>
-          i === index ? { ...c, status: action === 'accept' ? 1 : -1 } : c
+          i === index ? { ...c, status: action === 'accept' ? 1 : 2 } : c
         )
       );
     } catch (err) {
