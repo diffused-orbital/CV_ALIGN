@@ -43,11 +43,14 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         db.refresh(new_user)
         print("✅ Registered new user:", new_user.email)
         return new_user
-    
+
+    except HTTPException:
+        # Preserve intentional 4xx responses (e.g. duplicate email/username)
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
 
 # @router.post("/login")
 # def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -74,6 +77,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
         return {"access_token": access_token, "token_type": "bearer"}
 
+    except HTTPException:
+        # Preserve intentional 401 for invalid credentials
+        raise
     except Exception as e:
         print(f"🔴 Login failed with error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
