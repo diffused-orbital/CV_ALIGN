@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './recruiterdashboard.css';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 export default function RecruiterDashboard() {
   const [username, setUsername] = useState('');
@@ -22,7 +23,7 @@ export default function RecruiterDashboard() {
     }
 
     axios
-      .get('http://localhost:8000/recruiter/dashboard', {
+      .get(`${API_URL}/recruiter/dashboard`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

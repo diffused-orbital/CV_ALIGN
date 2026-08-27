@@ -2,6 +2,7 @@ import './candidatedashboard.css';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 export default function CandidateDashboard() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function CandidateDashboard() {
       }
 
       try {
-        const response = await axios.get('http://localhost:8000/candidate/dashboard', {
+        const response = await axios.get(`${API_URL}/candidate/dashboard`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
