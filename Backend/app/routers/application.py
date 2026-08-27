@@ -10,7 +10,7 @@ import shutil
 import os
 import re
 import uuid
-from pathlib import Path
+from pathlib import Path as FilePath
 import cloudinary
 import cloudinary.uploader
 
@@ -46,7 +46,7 @@ def _persist_scores(db: Session, job_id: int, ranked_results):
     uploads), which matches the stem of Application.resume_path.
     """
     applications = db.query(Application).filter(Application.job_id == job_id).all()
-    by_stem = {Path(a.resume_path).stem: a for a in applications}
+    by_stem = {FilePath(a.resume_path).stem: a for a in applications}
 
     for result in ranked_results or []:
         application = by_stem.get(result.get("Name"))
