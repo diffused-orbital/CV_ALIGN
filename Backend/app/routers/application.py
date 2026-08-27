@@ -8,11 +8,46 @@ from app.routers.auth import get_current_user
 from New_Model.new_main import score_cvs_v2
 import shutil
 import os
+import re
 import uuid
+from pathlib import Path
 import cloudinary
 import cloudinary.uploader
 
 router = APIRouter(tags=["Applications"])
+
+
+def _split_feedback(feedback: str):
+    """Split the LLM feedback string into (strengths, weaknesses)."""
+    if not feedback:
+        return None, None
+    match = re.search(r"(?is)strengths\s*:?(.*?)weaknesses\s*:?(.*)", feedback)
+    if match:
+        strengths = match.group(1).strip()
+        weaknesses = match.group(2).strip()
+        return strengths or None, weaknesses or None
+    return feedback.strip() or None, None
+
+
+def _persist_scores(db: Session, job_id: int, ranked_results):
+    """Map ranked model results back onto Application rows and save them.
+
+    The model keys each result by the resume filename stem (a UUID for
+    uploads), which matches the stem of Application.resume_path.
+    """
+    applications = db.query(Application).filter(Application.job_id == job_id).all()
+    by_stem = {Path(a.resume_path).stem: a for a in applications}
+
+    for result in ranked_results or []:
+        application = by_stem.get(result.get("Name"))
+        if not application:
+            continue
+        application.score = result.get("Score")
+        strengths, weaknesses = _split_feedback(result.get("Feedback"))
+        application.strengths = strengths
+        application.weaknesses = weaknesses
+
+    db.commit()
 
 cloudinary.config(
     cloud_name="daom8lqfr",
@@ -90,9 +125,10 @@ def apply_to_job(
     db.commit()
     db.refresh(application)
 
-    # Trigger scoring
+    # Trigger scoring for all resumes under this job and persist the results
     try:
-        score_cvs_v2(safe_company_name, safe_title)
+        ranked_results = score_cvs_v2(safe_company_name, safe_title)
+        _persist_scores(db, job.id, ranked_results)
     except Exception as e:
         print(f"⚠️ Scoring model failed: {e}")
 
