@@ -10,6 +10,24 @@ import shutil
 
 router = APIRouter()
 
+@router.get("/jobs")
+def list_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Any authenticated user can browse the list of open jobs to apply to.
+    jobs = db.query(Job).order_by(Job.created_at.desc()).all()
+    return {
+        "jobs": [
+            {
+                "id": job.id,
+                "title": job.title,
+                "company": job.company,
+            }
+            for job in jobs
+        ]
+    }
+
 @router.post("/job/upload")
 def upload_job_with_pdf(
     title: str = Form(...),
