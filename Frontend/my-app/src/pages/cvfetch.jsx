@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../config';
 import './cvfetch.css';
-
-const API_URL = 'http://localhost:8000';
 
 const statusLabel = (status) =>
   status === 1 ? 'Accepted' : status === 0 ? 'Pending' : 'Rejected';
