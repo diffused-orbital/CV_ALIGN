@@ -59,6 +59,7 @@ def get_job_details(
     for app in applications:
         user = db.query(User).filter(User.id == app.user_id).first()
         candidates.append(CandidateInfo(
+            application_id=app.id,
             candidate_name=user.username,
             institute=app.institute,
             degree=app.degree,

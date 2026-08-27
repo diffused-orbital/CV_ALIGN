@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 class CandidateInfo(BaseModel):
+    application_id: int
     candidate_name: str
     institute: str
     degree: str
