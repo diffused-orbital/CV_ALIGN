@@ -47,11 +47,5 @@ def score_cvs_v2(company_name,role_name):
         raise FileNotFoundError(f"No resumes found in {base_prefix}/resumes")
 
     ranked_results = sc.process_resumes(resume_urls, jd_file_url)
-    # ranked_results = {{"Name","Score","Feedback"}}
+    # ranked_results = [{"Name", "Score", "Feedback"}, ...]
     return ranked_results
-    print("\n🏆 Final Ranking 🏆\n")
-    for rank, result in enumerate(ranked_results, start=1):
-        print(f"Rank {rank}: {result['Name']} - Score: {result['Score']:.2f}/100")
-        print("Feedback:")
-        print(result["Feedback"])
-        print("=" * 50)
