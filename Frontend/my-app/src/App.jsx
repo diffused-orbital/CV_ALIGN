@@ -6,6 +6,7 @@ import CandidateDashboard from './pages/candidatedashboard';
 import CandidateUpload from './pages/apply';
 import JobUpload from './pages/jobupload';
 import RecruiterDashboard from './pages/recruiterdashboard';
+import JobDetails from './pages/cvfetch';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/candidate/upload" element={<CandidateUpload />} />
       <Route path="/upload-job" element={<JobUpload />} />
       <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
+      <Route path="/recruiter/job/:jobId" element={<JobDetails />} />
     </Routes>
   );
 }
