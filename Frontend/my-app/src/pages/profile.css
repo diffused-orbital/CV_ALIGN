@@ -103,3 +103,21 @@
   fill: currentColor;
   display: block;
 }
+
+.upload-message {
+  text-align: center;
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+}
+
+.upload-message.success {
+  background: rgba(76, 175, 80, 0.18);
+  color: #d7ffd9;
+}
+
+.upload-message.error {
+  background: rgba(244, 67, 54, 0.18);
+  color: #ffd7d7;
+}

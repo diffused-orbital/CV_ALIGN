@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.job import Job
 from app.models.user import User
+from app.models.application import Application
 from app.routers.auth import get_current_user
 from app.config import configure_cloudinary
 from datetime import datetime
@@ -16,18 +17,24 @@ def list_jobs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Any authenticated user can browse the list of open jobs to apply to.
+    # Any authenticated user can browse jobs. For candidates, annotate each
+    # job with whether they have already applied and their application status.
     jobs = db.query(Job).order_by(Job.created_at.desc()).all()
-    return {
-        "jobs": [
-            {
-                "id": job.id,
-                "title": job.title,
-                "company": job.company,
-            }
-            for job in jobs
-        ]
+    my_apps = {
+        a.job_id: a
+        for a in db.query(Application).filter(Application.user_id == current_user.id).all()
     }
+    result = []
+    for job in jobs:
+        appn = my_apps.get(job.id)
+        result.append({
+            "id": job.id,
+            "title": job.title,
+            "company": job.company,
+            "applied": appn is not None,
+            "status": appn.status if appn else None,
+        })
+    return {"jobs": result}
 
 @router.post("/job/upload")
 def upload_job_with_pdf(

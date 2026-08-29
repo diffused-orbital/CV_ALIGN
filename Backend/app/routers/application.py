@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.models.job import Job
 from app.models.application import Application
+from app.models.profile import Profile
 from app.routers.auth import get_current_user
-from New_Model.new_main import score_cvs_v2
-import shutil
-import os
+from app.schemas.application import ApplicationCreate
 import re
 import uuid
 from pathlib import Path as FilePath
@@ -47,7 +46,7 @@ def _persist_scores(db: Session, job_id: int, ranked_results):
     uploads), which matches the stem of Application.resume_path.
     """
     applications = db.query(Application).filter(Application.job_id == job_id).all()
-    by_stem = {FilePath(a.resume_path).stem: a for a in applications}
+    by_stem = {FilePath((a.resume_path or "").split("?")[0]).stem: a for a in applications}
 
     for result in ranked_results or []:
         application = by_stem.get(result.get("Name"))
@@ -64,22 +63,31 @@ configure_cloudinary()
 
 @router.post("/apply")
 def apply_to_job(
-    job_id: int = Form(...),
-    cgpa: float = Form(...),
-    institute: str = Form(...),
-    degree: str = Form(...),
-    file: UploadFile = File(...),
+    payload: ApplicationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """One-click apply using the candidate's saved profile and resume.
+
+    Scoring is not run here; the recruiter triggers it from the job page
+    after closing the job (see /recruiter/job/{id}/generate).
+    """
     # Only candidates can apply to jobs
     if current_user.role != "candidate":
         raise HTTPException(status_code=403, detail="Only candidates can apply to jobs.")
 
     # Check if job exists
-    job = db.query(Job).filter(Job.id == job_id).first()
+    job = db.query(Job).filter(Job.id == payload.job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    # Require a completed profile (with a resume) before applying
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if not profile or not profile.resume_path:
+        raise HTTPException(
+            status_code=400,
+            detail="Complete your profile (including a resume) before applying.",
+        )
 
     # Prevent duplicate applications
     existing = db.query(Application).filter(
@@ -89,58 +97,39 @@ def apply_to_job(
     if existing:
         raise HTTPException(status_code=400, detail="You have already applied to this job.")
 
-    # Validate file format
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF resumes are allowed.")
+    safe_company_name = job.company.replace(" ", "_")
+    safe_title = job.title.replace(" ", "_")
 
-    company_name = job.company
-    title = job.title
-    safe_company_name = company_name.replace(" ", "_")
-    safe_title = title.replace(" ", "_")
-
-    # Generate unique filename
-    file_ext = file.filename.split(".")[-1]
-    filename = f"{uuid.uuid4()}.{file_ext}"
-    upload_dir = f"uploads/{safe_company_name}/{safe_title}/resumes"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, filename)
-
-    # Save file locally
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Upload to Cloudinary
+    # Copy the profile resume into this job's Cloudinary folder so scoring
+    # (which lists resumes by prefix) can find it. The UUID filename stem is
+    # the join key used when persisting scores back onto the application.
+    filename = f"{uuid.uuid4()}.pdf"
     cloudinary_path = f"{safe_company_name}/{safe_title}/resumes/{filename}"
+    configure_cloudinary()
     try:
-        cloudinary.uploader.upload(
-            file_path,
+        result = cloudinary.uploader.upload(
+            profile.resume_path,
             resource_type="raw",
             public_id=cloudinary_path,
-            overwrite=True
+            overwrite=True,
         )
+        resume_url = result["secure_url"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {e}")
 
-    # Insert application in DB
+    # Insert application in DB, copying details from the profile
     application = Application(
         job_id=job.id,
         user_id=current_user.id,
-        resume_path=file_path.replace("\\", "/"),
+        resume_path=resume_url,
         status=0,
-        cgpa=cgpa,
-        institute=institute,
-        degree=degree
+        cgpa=profile.cgpa,
+        institute=profile.institute,
+        degree=profile.degree
     )
     db.add(application)
     db.commit()
     db.refresh(application)
-
-    # Trigger scoring for all resumes under this job and persist the results
-    try:
-        ranked_results = score_cvs_v2(safe_company_name, safe_title)
-        _persist_scores(db, job.id, ranked_results)
-    except Exception as e:
-        print(f"⚠️ Scoring model failed: {e}")
 
     return {
         "message": "Application submitted successfully!",

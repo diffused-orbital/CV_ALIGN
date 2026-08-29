@@ -60,15 +60,17 @@ def _reset_db():
 def _mock_external_services(monkeypatch):
     """Stub Cloudinary uploads and the scoring model for every test."""
     import cloudinary.uploader
-    import app.routers.application as application_mod
 
-    monkeypatch.setattr(
-        cloudinary.uploader,
-        "upload",
-        lambda *a, **k: {"secure_url": "https://fake.cloud/resource.pdf"},
-    )
-    # Default: scoring returns nothing (persistence is unit-tested separately)
-    monkeypatch.setattr(application_mod, "score_cvs_v2", lambda *a, **k: [])
+    def _fake_upload(*args, **kwargs):
+        # Echo the requested public_id so each upload yields a unique URL,
+        # mirroring how real Cloudinary keys uploads by public_id.
+        public_id = kwargs.get("public_id", "resource")
+        return {
+            "secure_url": f"https://fake.cloud/{public_id}.pdf",
+            "public_id": public_id,
+        }
+
+    monkeypatch.setattr(cloudinary.uploader, "upload", _fake_upload)
     yield
 
 
@@ -115,3 +117,29 @@ def recruiter2_headers(client):
 @pytest.fixture
 def candidate_headers(client):
     return _auth_header(client, "cand_one", "cand1@test.com", "Passw0rd!", "candidate")
+
+
+def _create_profile(client, headers, full_name="Cand One", contact="9990001111",
+                    cgpa=8.5, institute="IIT", degree="BTech", with_resume=True):
+    import io
+    files = {}
+    if with_resume:
+        files["resume"] = ("resume.pdf", io.BytesIO(b"%PDF-1.4 fake resume"), "application/pdf")
+    return client.post(
+        "/candidate/profile",
+        headers=headers,
+        data={
+            "full_name": full_name,
+            "contact": contact,
+            "cgpa": cgpa,
+            "institute": institute,
+            "degree": degree,
+        },
+        files=files or None,
+    )
+
+
+@pytest.fixture
+def candidate_with_profile(client, candidate_headers):
+    _create_profile(client, candidate_headers)
+    return candidate_headers

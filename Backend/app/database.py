@@ -22,5 +22,5 @@ def get_db():
         db.close()
 
 def create_tables():
-    from app.models import user, job, application  # Import all models here
+    from app.models import user, job, application, profile  # Import all models here
     Base.metadata.create_all(bind=engine)
