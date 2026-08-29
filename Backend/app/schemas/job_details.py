@@ -17,4 +17,5 @@ class JobDetail(BaseModel):
     job_id: int
     job_title: str
     company: str
+    is_open: bool
     candidates: List[CandidateInfo]

@@ -5,16 +5,29 @@ import { API_URL } from '../config';
 import './cvfetch.css';
 
 const statusLabel = (status) =>
-  status === 1 ? 'Accepted' : status === 0 ? 'Pending' : 'Rejected';
+  status === 1 ? 'Accepted' : status === 2 ? 'Rejected' : 'Pending';
 
 export default function JobDetails() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const [jobTitle, setJobTitle] = useState('');
   const [company, setCompany] = useState('');
+  const [isOpen, setIsOpen] = useState(true);
   const [candidates, setCandidates] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+  const loadDetails = async () => {
+    const res = await axios.get(`${API_URL}/recruiter/job/${jobId}`, { headers: authHeader() });
+    setJobTitle(res.data.job_title);
+    setCompany(res.data.company);
+    setIsOpen(res.data.is_open);
+    setCandidates(res.data.candidates || []);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,34 +35,54 @@ export default function JobDetails() {
       navigate('/login');
       return;
     }
-
-    axios
-      .get(`${API_URL}/recruiter/job/${jobId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const data = res.data;
-        setJobTitle(data.job_title);
-        setCompany(data.company);
-        setCandidates(data.candidates || []);
-      })
-      .catch((err) => {
-        console.error('Error loading job details:', err);
-        setError('Failed to load job details.');
-      });
+    loadDetails().catch((err) => {
+      if (err.response?.status === 401) navigate('/login');
+      else setError(err.response?.data?.detail || 'Failed to load job details.');
+    });
   }, [jobId, navigate]);
 
   const toggleExpand = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
+  const handleClose = async () => {
+    setError('');
+    setNotice('');
+    try {
+      await axios.post(`${API_URL}/recruiter/job/${jobId}/close`, {}, { headers: authHeader() });
+      setIsOpen(false);
+      setNotice('Applications closed. Click "Generate scores" to rank candidates.');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to close applications.');
+    }
+  };
+
+  const handleGenerate = async () => {
+    setError('');
+    setNotice('');
+    setGenerating(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/recruiter/job/${jobId}/generate`,
+        {},
+        { headers: authHeader() }
+      );
+      setCandidates(res.data.candidates || []);
+      setNotice(res.data.message || 'Scores generated.');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to generate scores.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const updateStatus = async (applicationId, action, index) => {
-    const token = localStorage.getItem('token');
+    setError('');
     try {
       await axios.post(
         `${API_URL}/application/${applicationId}/${action}`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: authHeader() }
       );
       setCandidates((prev) =>
         prev.map((c, i) =>
@@ -57,7 +90,7 @@ export default function JobDetails() {
         )
       );
     } catch (err) {
-      console.error(`Failed to ${action} application:`, err);
+      setError(err.response?.data?.detail || `Failed to ${action} application.`);
     }
   };
 
@@ -74,7 +107,23 @@ export default function JobDetails() {
         {jobTitle} {company && `at ${company}`}
       </h1>
 
-      {error && <p className="upload-message">{error}</p>}
+      <div className="job-controls">
+        <span className={`job-state ${isOpen ? 'open' : 'closed'}`}>
+          {isOpen ? 'Open — accepting applications' : 'Closed'}
+        </span>
+        {isOpen ? (
+          <button className="control-btn" onClick={handleClose}>
+            Close applications
+          </button>
+        ) : (
+          <button className="control-btn generate" onClick={handleGenerate} disabled={generating}>
+            {generating ? 'Generating…' : 'Generate scores'}
+          </button>
+        )}
+      </div>
+
+      {notice && <p className="job-notice success">{notice}</p>}
+      {error && <p className="job-notice error">{error}</p>}
 
       <div className="table-scroll-container">
         <table className="candidate-table">
@@ -132,7 +181,7 @@ export default function JobDetails() {
                         </button>
                         <button
                           className="reject-button"
-                          disabled={c.status === -1 || c.status === 2}
+                          disabled={c.status === 2}
                           onClick={(e) => {
                             e.stopPropagation();
                             updateStatus(c.application_id, 'reject', index);
@@ -150,13 +199,13 @@ export default function JobDetails() {
                           <div>
                             <span className="feedback-title">Strengths: </span>
                             <span className="feedback-content">
-                              {c.strengths || 'No feedback available yet.'}
+                              {c.strengths || 'No feedback yet — close the job and click Generate.'}
                             </span>
                           </div>
                           <div>
                             <span className="feedback-title">Weaknesses: </span>
                             <span className="feedback-content">
-                              {c.weaknesses || 'No feedback available yet.'}
+                              {c.weaknesses || 'No feedback yet — close the job and click Generate.'}
                             </span>
                           </div>
                         </div>

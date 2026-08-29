@@ -76,10 +76,12 @@ def apply_to_job(
     if current_user.role != "candidate":
         raise HTTPException(status_code=403, detail="Only candidates can apply to jobs.")
 
-    # Check if job exists
+    # Check if job exists and is still accepting applications
     job = db.query(Job).filter(Job.id == payload.job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if not job.is_open:
+        raise HTTPException(status_code=400, detail="This job is no longer accepting applications.")
 
     # Require a completed profile (with a resume) before applying
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()

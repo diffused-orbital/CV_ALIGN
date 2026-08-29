@@ -31,6 +31,7 @@ def list_jobs(
             "id": job.id,
             "title": job.title,
             "company": job.company,
+            "is_open": bool(job.is_open),
             "applied": appn is not None,
             "status": appn.status if appn else None,
         })

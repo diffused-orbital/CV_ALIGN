@@ -255,6 +255,68 @@ class TestAcceptReject:
         assert client.post("/application/99999/accept", headers=recruiter_headers).status_code == 404
 
 
+# ---- Job lifecycle: close + generate (Task 3) -------------------------------
+
+class TestJobLifecycle:
+    def test_job_details_includes_is_open(self, client, recruiter_headers):
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        r = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers)
+        assert r.json()["is_open"] is True
+
+    def test_close_job_blocks_new_applications(self, client, recruiter_headers, candidate_headers):
+        _create_profile(client, candidate_headers)
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        r = client.post(f"/recruiter/job/{job_id}/close", headers=recruiter_headers)
+        assert r.status_code == 200 and r.json()["is_open"] is False
+        # Candidate sees it as closed and can no longer apply
+        jobs = client.get("/jobs", headers=candidate_headers).json()["jobs"]
+        assert any(j["id"] == job_id and j["is_open"] is False for j in jobs)
+        assert _apply(client, candidate_headers, job_id).status_code == 400
+
+    def test_close_requires_owner(self, client, recruiter_headers, recruiter2_headers, candidate_headers):
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        assert client.post(f"/recruiter/job/{job_id}/close", headers=recruiter2_headers).status_code == 404
+        assert client.post(f"/recruiter/job/{job_id}/close", headers=candidate_headers).status_code == 403
+
+    def test_generate_requires_closed_job(self, client, recruiter_headers):
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        assert client.post(f"/recruiter/job/{job_id}/generate", headers=recruiter_headers).status_code == 400
+
+    def test_generate_scores_persists_top_candidates(self, client, recruiter_headers, candidate_headers, monkeypatch):
+        _create_profile(client, candidate_headers)
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        _apply(client, candidate_headers, job_id)
+        client.post(f"/recruiter/job/{job_id}/close", headers=recruiter_headers)
+
+        # Key the mocked model output by the applied resume's UUID stem
+        from conftest import TestingSessionLocal
+        from app.models.application import Application
+        from pathlib import Path
+        db = TestingSessionLocal()
+        try:
+            appn = db.query(Application).filter(Application.job_id == job_id).first()
+            stem = Path(appn.resume_path.split("?")[0]).stem
+        finally:
+            db.close()
+
+        import app.routers.recruiter as recruiter_mod
+        monkeypatch.setattr(recruiter_mod, "score_cvs_v2", lambda *a, **k: [
+            {"Name": stem, "Score": 91.0, "Feedback": "Strengths: Great.\nWeaknesses: None."}
+        ])
+
+        r = client.post(f"/recruiter/job/{job_id}/generate", headers=recruiter_headers)
+        assert r.status_code == 200, r.text
+        assert r.json()["candidates"][0]["score"] == 91.0
+        got = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers).json()
+        assert got["candidates"][0]["score"] == 91.0
+        assert "Great" in got["candidates"][0]["strengths"]
+
+    def test_generate_requires_owner(self, client, recruiter_headers, recruiter2_headers):
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        client.post(f"/recruiter/job/{job_id}/close", headers=recruiter_headers)
+        assert client.post(f"/recruiter/job/{job_id}/generate", headers=recruiter2_headers).status_code == 404
+
+
 # ---- Score persistence helpers ----------------------------------------------
 
 class TestScorePersistence:
