@@ -2,9 +2,11 @@ import './Login.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser, fetchUserProfile } from '../api'; // Adjust path if needed
+import InlineMessage from '../components/InlineMessage';
 
 export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' });
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -13,6 +15,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       // 1. Login request to FastAPI
       const data = await loginUser(form);
@@ -29,11 +32,11 @@ export default function Login() {
       } else if (user.role === 'recruiter') {
         navigate('/recruiter-dashboard');
       } else {
-        alert('⚠️ Unknown role');
+        setError('This account has an unrecognized role.');
       }
     } catch (err) {
       console.error("Login error:", err);
-      alert('❌ Login failed: ' + (err.response?.data?.detail || 'Unknown error'));
+      setError(err.response?.data?.detail || 'Login failed. Please check your email and password.');
     }
   };
 
@@ -70,6 +73,8 @@ export default function Login() {
           />
           <button type="submit">Login</button>
         </form>
+
+        <InlineMessage type="error">{error}</InlineMessage>
 
         <p className="register-link">
           New to CV ALIGNER ? <span onClick={() => navigate('/register')}>Register</span>
