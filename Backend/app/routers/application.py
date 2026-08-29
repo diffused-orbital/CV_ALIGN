@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path as FilePath
 import cloudinary
 import cloudinary.uploader
+from app.config import configure_cloudinary
 
 router = APIRouter(tags=["Applications"])
 
@@ -59,12 +60,7 @@ def _persist_scores(db: Session, job_id: int, ranked_results):
 
     db.commit()
 
-cloudinary.config(
-    cloud_name="daom8lqfr",
-    api_key='833671224989892',
-    api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
-    secure=True
-)
+configure_cloudinary()
 
 @router.post("/apply")
 def apply_to_job(

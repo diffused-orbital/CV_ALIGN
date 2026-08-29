@@ -6,19 +6,23 @@
 def score_cvs_v2(company_name,role_name):
     import requests
     from io import BytesIO
-    import fitz 
+    import fitz
     import os
     from .functions import scoring as sc
     import sys
     import cloudinary
     import cloudinary.api
-    os.environ["GOOGLE_API_KEY"] = "AIzaSyCQwcOs4gYRDS2Iw-_b3DivFcIuVT6zVhw"
+    from dotenv import load_dotenv
+
+    # Load credentials from the environment (.env). GOOGLE_API_KEY is read
+    # from the environment by LangChain; Cloudinary is configured from env too.
+    load_dotenv()
 
     cloudinary.config(
-    cloud_name="daom8lqfr",
-    api_key='833671224989892',
-    api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
-    secure=True
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.getenv("CLOUDINARY_API_KEY"),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+        secure=True,
     )
 
     base_prefix = f"{company_name}/{role_name}"

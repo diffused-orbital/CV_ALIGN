@@ -4,6 +4,7 @@ from app.database import get_db
 from app.models.job import Job
 from app.models.user import User
 from app.routers.auth import get_current_user
+from app.config import configure_cloudinary
 from datetime import datetime
 import os
 import shutil
@@ -50,6 +51,7 @@ def upload_job_with_pdf(
 
     # Cloudinary Upload Section
     import cloudinary.uploader
+    configure_cloudinary()
 
     safe_company_name = company.replace(" ", "_")
     safe_title = title.replace(" ", "_")

@@ -1,3 +1,8 @@
+# Environment variables / secrets (keep .env.example tracked)
+.env
+.env.local
+.env.*.local
+
 # Virtual environment
 .venv/
 
