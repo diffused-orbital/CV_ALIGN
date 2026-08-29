@@ -107,10 +107,14 @@ def apply_to_job(
     # the join key used when persisting scores back onto the application.
     filename = f"{uuid.uuid4()}.pdf"
     cloudinary_path = f"{safe_company_name}/{safe_title}/resumes/{filename}"
+    # Prefer the local file; fall back to the stored Cloudinary URL if it is gone.
+    source = profile.resume_path
+    if not (source and FilePath(source).exists()):
+        source = profile.resume_url
     configure_cloudinary()
     try:
         result = cloudinary.uploader.upload(
-            profile.resume_path,
+            source,
             resource_type="raw",
             public_id=cloudinary_path,
             overwrite=True,

@@ -56,22 +56,37 @@ def _reset_db():
     yield
 
 
+# Records every mocked Cloudinary upload call for assertions in tests.
+UPLOAD_CALLS = []
+
+
+def _fake_upload(*args, **kwargs):
+    # Echo the requested public_id so each upload yields a unique URL,
+    # mirroring how real Cloudinary keys uploads by public_id. For raw
+    # uploads Cloudinary keeps an existing extension and appends the source
+    # format only when the public_id has none.
+    public_id = kwargs.get("public_id", "resource")
+    url = f"https://fake.cloud/{public_id}"
+    if not public_id.lower().endswith(".pdf"):
+        url += ".pdf"
+    UPLOAD_CALLS.append({"source": args[0] if args else None, "kwargs": kwargs})
+    return {"secure_url": url, "public_id": public_id}
+
+
 @pytest.fixture(autouse=True)
 def _mock_external_services(monkeypatch):
-    """Stub Cloudinary uploads and the scoring model for every test."""
+    """Stub Cloudinary uploads (recording calls) for every test."""
     import cloudinary.uploader
 
-    def _fake_upload(*args, **kwargs):
-        # Echo the requested public_id so each upload yields a unique URL,
-        # mirroring how real Cloudinary keys uploads by public_id.
-        public_id = kwargs.get("public_id", "resource")
-        return {
-            "secure_url": f"https://fake.cloud/{public_id}.pdf",
-            "public_id": public_id,
-        }
-
+    UPLOAD_CALLS.clear()
     monkeypatch.setattr(cloudinary.uploader, "upload", _fake_upload)
     yield
+
+
+@pytest.fixture
+def upload_calls():
+    """Cloudinary upload calls recorded during the current test."""
+    return UPLOAD_CALLS
 
 
 @pytest.fixture

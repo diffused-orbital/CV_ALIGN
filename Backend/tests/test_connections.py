@@ -317,6 +317,63 @@ class TestJobLifecycle:
         assert client.post(f"/recruiter/job/{job_id}/generate", headers=recruiter2_headers).status_code == 404
 
 
+# ---- Cloudinary upload/fetch correctness (Task 5) ---------------------------
+
+class TestCloudinary:
+    def test_job_upload_uses_raw_and_persists_url(self, client, recruiter_headers, upload_calls):
+        r = _post_job(client, recruiter_headers, title="Data Sci", company="Umbrella")
+        assert r.status_code == 200, r.text
+        jd_calls = [c for c in upload_calls if c["kwargs"].get("public_id", "").endswith("job_description")]
+        assert jd_calls, upload_calls
+        assert jd_calls[0]["kwargs"]["resource_type"] == "raw"
+        assert jd_calls[0]["kwargs"]["public_id"] == "Umbrella/Data_Sci/job_description"
+        # The secure URL returned by Cloudinary is what gets persisted/returned.
+        assert r.json()["cloudinary_url"] == "https://fake.cloud/Umbrella/Data_Sci/job_description.pdf"
+
+    def test_profile_upload_uses_raw_and_persists_url(self, client, candidate_headers, upload_calls):
+        r = _create_profile(client, candidate_headers)
+        prof_calls = [c for c in upload_calls if c["kwargs"].get("public_id", "").startswith("profiles/")]
+        assert prof_calls, upload_calls
+        assert prof_calls[0]["kwargs"]["resource_type"] == "raw"
+        # The persisted resume_url matches the uploaded secure URL.
+        assert r.json()["resume_url"].startswith("https://fake.cloud/profiles/")
+
+    def test_apply_upload_params_and_scoring_join_key(self, client, recruiter_headers, candidate_headers, upload_calls):
+        _create_profile(client, candidate_headers)
+        job_id = _post_job(client, recruiter_headers, title="ML Eng", company="Initech").json()["job_id"]
+        _apply(client, candidate_headers, job_id)
+
+        resume_calls = [c for c in upload_calls if "/resumes/" in c["kwargs"].get("public_id", "")]
+        assert resume_calls, upload_calls
+        kw = resume_calls[-1]["kwargs"]
+        assert kw["resource_type"] == "raw"
+        assert kw["overwrite"] is True
+        public_id = kw["public_id"]
+        assert public_id.startswith("Initech/ML_Eng/resumes/")
+
+        # The stored resume URL must round-trip with the public_id so that the
+        # scoring step (which keys results by the resume filename stem) maps
+        # back onto the right application.
+        from conftest import TestingSessionLocal
+        from app.models.application import Application
+        from pathlib import Path
+        db = TestingSessionLocal()
+        try:
+            appn = db.query(Application).filter(Application.job_id == job_id).first()
+        finally:
+            db.close()
+        assert appn.resume_path == f"https://fake.cloud/{public_id}"
+        assert Path(appn.resume_path.split("?")[0]).stem == Path(public_id).stem
+
+    def test_recruiter_sees_resume_download_link(self, client, recruiter_headers, candidate_headers):
+        _create_profile(client, candidate_headers)
+        job_id = _post_job(client, recruiter_headers).json()["job_id"]
+        _apply(client, candidate_headers, job_id)
+        cand = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers).json()["candidates"][0]
+        # Resume link is a fetchable Cloudinary URL.
+        assert cand["resume_link"].startswith("https://")
+
+
 # ---- Score persistence helpers ----------------------------------------------
 
 class TestScorePersistence:
