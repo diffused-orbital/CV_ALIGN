@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Float, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -8,10 +8,11 @@ class Job(Base):
     __tablename__ = "jobs"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
-    description_path = Column(String, nullable=False)  
+    description_path = Column(String, nullable=False)
     company = Column(String, nullable=False)
     posted_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
+    is_open = Column(Boolean, default=True, nullable=False)  # accepting applications?
     recruiter = relationship("User", back_populates="jobs")
     applications = relationship("Application", back_populates="job")
 

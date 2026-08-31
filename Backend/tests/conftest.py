@@ -56,6 +56,7 @@ def _reset_db():
     yield
 
 
+<<<<<<< HEAD
 @pytest.fixture(autouse=True)
 def _mock_external_services(monkeypatch):
     """Stub Cloudinary uploads and the scoring model for every test."""
@@ -69,10 +70,45 @@ def _mock_external_services(monkeypatch):
     )
     # Default: scoring returns nothing (persistence is unit-tested separately)
     monkeypatch.setattr(application_mod, "score_cvs_v2", lambda *a, **k: [])
+=======
+# Records every mocked Cloudinary upload call for assertions in tests.
+UPLOAD_CALLS = []
+
+
+def _fake_upload(*args, **kwargs):
+    # Echo the requested public_id so each upload yields a unique URL,
+    # mirroring how real Cloudinary keys uploads by public_id. For raw
+    # uploads Cloudinary keeps an existing extension and appends the source
+    # format only when the public_id has none.
+    public_id = kwargs.get("public_id", "resource")
+    url = f"https://fake.cloud/{public_id}"
+    if not public_id.lower().endswith(".pdf"):
+        url += ".pdf"
+    UPLOAD_CALLS.append({"source": args[0] if args else None, "kwargs": kwargs})
+    return {"secure_url": url, "public_id": public_id}
+
+
+@pytest.fixture(autouse=True)
+def _mock_external_services(monkeypatch):
+    """Stub Cloudinary uploads (recording calls) for every test."""
+    import cloudinary.uploader
+
+    UPLOAD_CALLS.clear()
+    monkeypatch.setattr(cloudinary.uploader, "upload", _fake_upload)
+>>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
     yield
 
 
 @pytest.fixture
+<<<<<<< HEAD
+=======
+def upload_calls():
+    """Cloudinary upload calls recorded during the current test."""
+    return UPLOAD_CALLS
+
+
+@pytest.fixture
+>>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 def client():
     return TestClient(app)
 
@@ -115,3 +151,32 @@ def recruiter2_headers(client):
 @pytest.fixture
 def candidate_headers(client):
     return _auth_header(client, "cand_one", "cand1@test.com", "Passw0rd!", "candidate")
+<<<<<<< HEAD
+=======
+
+
+def _create_profile(client, headers, full_name="Cand One", contact="9990001111",
+                    cgpa=8.5, institute="IIT", degree="BTech", with_resume=True):
+    import io
+    files = {}
+    if with_resume:
+        files["resume"] = ("resume.pdf", io.BytesIO(b"%PDF-1.4 fake resume"), "application/pdf")
+    return client.post(
+        "/candidate/profile",
+        headers=headers,
+        data={
+            "full_name": full_name,
+            "contact": contact,
+            "cgpa": cgpa,
+            "institute": institute,
+            "degree": degree,
+        },
+        files=files or None,
+    )
+
+
+@pytest.fixture
+def candidate_with_profile(client, candidate_headers):
+    _create_profile(client, candidate_headers)
+    return candidate_headers
+>>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0

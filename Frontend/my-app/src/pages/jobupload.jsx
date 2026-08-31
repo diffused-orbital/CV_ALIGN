@@ -50,7 +50,7 @@ export default function JobUpload() {
 
     } catch (error) {
       console.error("Upload error:", error);
-      setMessage("❌ Failed to upload job. Try again.");
+      setMessage("❌ " + (error.response?.data?.detail || "Failed to upload job. Try again."));
     }
   };
 

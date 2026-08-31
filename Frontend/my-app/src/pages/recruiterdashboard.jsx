@@ -3,11 +3,13 @@ import './recruiterdashboard.css';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
+import InlineMessage from '../components/InlineMessage';
 
 export default function RecruiterDashboard() {
   const [username, setUsername] = useState('');
   const [summary, setSummary] = useState({ jobs: 0, cvs: 0 });
   const [jobData, setJobData] = useState([]);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -53,7 +55,11 @@ export default function RecruiterDashboard() {
       })
       .catch((err) => {
         console.error("Error loading recruiter dashboard:", err);
-        navigate('/login');
+        if (err.response?.status === 401) {
+          navigate('/login');
+        } else {
+          setError(err.response?.data?.detail || 'Failed to load your dashboard.');
+        }
       });
   }, [navigate]);
 
@@ -69,6 +75,7 @@ export default function RecruiterDashboard() {
 
       <div className="dashboard-center-content">
         <div className="greeting">Hello, {username} !</div>
+        <InlineMessage type="error">{error}</InlineMessage>
         <div className="summary-row">
           <div className="summary-box">
             <div className="summary-title">Total Jobs Posted</div>

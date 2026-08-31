@@ -3,21 +3,37 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
+<<<<<<< HEAD
+=======
+
+const statusLabel = (status) =>
+  status === 1 ? 'Accepted' : status === 2 ? 'Rejected' : 'Pending';
+>>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 export default function CandidateDashboard() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
-  const [applications, setApplications] = useState([]);
+  const [profileComplete, setProfileComplete] = useState(true);
+  const [jobs, setJobs] = useState([]);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+  const loadJobs = async () => {
+    const res = await axios.get(`${API_URL}/jobs`, { headers: authHeader() });
+    setJobs(res.data.jobs || []);
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    (async () => {
       try {
+<<<<<<< HEAD
         const response = await axios.get(`${API_URL}/candidate/dashboard`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -26,70 +42,111 @@ export default function CandidateDashboard() {
 
         setUsername(response.data.candidate);
         setApplications(response.data.applications);
+=======
+        const me = await axios.get(`${API_URL}/me`, { headers: authHeader() });
+        setUsername(me.data.username);
+        const prof = await axios.get(`${API_URL}/candidate/profile`, { headers: authHeader() });
+        setProfileComplete(Boolean(prof.data.complete));
+        await loadJobs();
+>>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
       } catch (err) {
-        console.error('Error loading candidate dashboard:', err);
-        navigate('/login');
+        if (err.response?.status === 401) navigate('/login');
+        else setError(err.response?.data?.detail || 'Failed to load dashboard.');
       }
-    };
-
-    fetchData();
+    })();
   }, [navigate]);
+
+  const handleApply = async (job) => {
+    setError('');
+    setNotice('');
+    if (!profileComplete) {
+      setError('Please complete your profile before applying.');
+      return;
+    }
+    try {
+      await axios.post(`${API_URL}/apply`, { job_id: job.id }, { headers: authHeader() });
+      setNotice(`✅ Applied to ${job.title} at ${job.company}.`);
+      await loadJobs();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to apply. Please try again.');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
   };
-  const handlehome = () => {
+  const handleHome = () => {
     localStorage.removeItem('token');
     navigate('/');
   };
+
+  // Show open roles, plus any role the candidate already applied to.
+  const visibleJobs = jobs.filter((j) => j.applied || j.is_open !== false);
+
   return (
-  <div className="dashboard-bg">
-    <button className="logout-btn" onClick={handleLogout} title="Logout">
-      <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3">
-        <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z" />
-      </svg>
-    </button>
+    <div className="dashboard-bg">
+      <button className="logout-btn" onClick={handleLogout} title="Logout">
+        <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px" fill="#e3e3e3">
+          <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h280v80H200Zm440-160-55-58 102-102H360v-80h327L585-622l55-58 200 200-200 200Z" />
+        </svg>
+      </button>
 
-    <div className="dashboard-header">
-      <div className="company-title" on onClick={handlehome}>CV ALIGNER</div>
-      <div className="dashboard-greeting">Hello, {username}!</div>
-    </div>
+      <div className="dashboard-header">
+        <div className="company-title" onClick={handleHome}>CV ALIGNER</div>
+        <div className="dashboard-greeting">Hello, {username}!</div>
+      </div>
 
-   <button className="apply-button" onClick={() => navigate('/candidate/upload')}>
-  <span className="apply-icon">
-    <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3">
-      <path d="M170-228q-38-45-61-99T80-440h82q6 43 22 82.5t42 73.5l-56 56ZM80-520q8-59 30-113t60-99l56 56q-26 34-42 73.5T162-520H80ZM438-82q-59-6-112.5-28.5T226-170l56-58q35 26 74 43t82 23v80ZM284-732l-58-58q47-37 101-59.5T440-878v80q-43 6-82.5 23T284-732ZM518-82v-80q44-6 83.5-22.5T676-228l58 58q-47 38-101.5 60T518-82Zm160-650q-35-26-75-43t-83-23v-80q59 6 113.5 28.5T734-790l-56 58Zm112 504-56-56q26-34 42-73.5t22-82.5h82q-8 59-30 113t-60 99Zm8-292q-6-43-22-82.5T734-676l56-56q38 45 61 99t29 113h-82ZM441-280v-247L337-423l-56-57 200-200 200 200-57 56-103-103v247h-80Z"/>
-    </svg>
-  </span>
-  Apply for a Job
-</button>
-
-
-    {/* Scrollable table area */}
-    <div className="dashboard-table-scroll-wrap">
-      <div className="dashboard-table-area">
-        <div className="dashboard-table-header glass">
-          <div>Job Title</div>
-          <div>Company</div>
-          <div>Status</div>
-        </div>
-
-        {applications.length === 0 ? (
-          <div className="dashboard-empty glass">
-            No company applied currently.
-          </div>
+      <div className="profile-banner">
+        {profileComplete ? (
+          <span>
+            Your profile is complete.{' '}
+            <button className="link-btn" onClick={() => navigate('/candidate/profile')}>Edit profile</button>
+          </span>
         ) : (
-          applications.map((app, idx) => (
-            <div key={idx} className="dashboard-tile glass">
-              <div>{app.job_title}</div>
-              <div>{app.company}</div>
-              <div className={`status ${app.status.toLowerCase()}`}>{app.status}</div>
-            </div>
-          ))
+          <span>
+            Complete your profile once to apply with a single click.{' '}
+            <button className="link-btn" onClick={() => navigate('/candidate/profile')}>Complete profile</button>
+          </span>
         )}
       </div>
+
+      {notice && <div className="dashboard-notice success">{notice}</div>}
+      {error && <div className="dashboard-notice error">{error}</div>}
+
+      <div className="dashboard-table-scroll-wrap">
+        <div className="dashboard-table-area">
+          <div className="dashboard-table-header glass">
+            <div>Job Title</div>
+            <div>Company</div>
+            <div>Action</div>
+          </div>
+
+          {visibleJobs.length === 0 ? (
+            <div className="dashboard-empty glass">No open roles right now.</div>
+          ) : (
+            visibleJobs.map((job) => (
+              <div key={job.id} className="dashboard-tile glass">
+                <div>{job.title}</div>
+                <div>{job.company}</div>
+                <div>
+                  {job.applied ? (
+                    <span className={`status ${statusLabel(job.status).toLowerCase()}`}>
+                      {statusLabel(job.status)}
+                    </span>
+                  ) : job.is_open === false ? (
+                    <span className="status closed">No longer accepting</span>
+                  ) : (
+                    <button className="apply-inline-btn" onClick={() => handleApply(job)}>
+                      Apply
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
 }
