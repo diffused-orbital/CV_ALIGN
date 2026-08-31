@@ -8,10 +8,12 @@ def score_cvs_v2(company_name,role_name):
     from io import BytesIO
     import fitz
     import os
+    import time
     from .functions import scoring as sc
     import sys
     import cloudinary
     import cloudinary.api
+    import cloudinary.utils
     from dotenv import load_dotenv
 
     # Load credentials from the environment (.env). GOOGLE_API_KEY is read
@@ -25,6 +27,19 @@ def score_cvs_v2(company_name,role_name):
         secure=True,
     )
 
+    def _download_url(resource):
+        # Cloudinary blocks direct delivery of raw PDFs (returns 401/empty),
+        # so build an authenticated, time-limited download URL the scorer can
+        # actually fetch. The raw public_id already carries the extension, so
+        # the format argument is left empty.
+        return cloudinary.utils.private_download_url(
+            resource["public_id"],
+            "",
+            resource_type="raw",
+            type=resource.get("type", "upload"),
+            expires_at=int(time.time()) + 3600,
+        )
+
     base_prefix = f"{company_name}/{role_name}"
 
     jd_files = cloudinary.api.resources(
@@ -36,7 +51,7 @@ def score_cvs_v2(company_name,role_name):
     if not jd_files:
         raise FileNotFoundError(f"No JD file found in {base_prefix}")
 
-    jd_file_url = jd_files[0]["secure_url"]
+    jd_file_url = _download_url(jd_files[0])
 
     # Resume folder - fetch all files using Cloudinary Admin API
     resume_urls = []
@@ -46,7 +61,7 @@ def score_cvs_v2(company_name,role_name):
         prefix=f'{base_prefix}/resumes/',
     )
     for resource in result.get('resources',[]):
-        resume_urls.append(resource['secure_url'])
+        resume_urls.append(_download_url(resource))
 
     if not resume_urls:
         raise FileNotFoundError(f"No resumes found in {base_prefix}/resumes")
