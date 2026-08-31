@@ -10,7 +10,6 @@ class CandidateInfo(BaseModel):
     score: Optional[float] = None
     strengths: Optional[str] = None
     weaknesses: Optional[str] = None
-    resume_link: str
     status: int
 
 class JobDetail(BaseModel):

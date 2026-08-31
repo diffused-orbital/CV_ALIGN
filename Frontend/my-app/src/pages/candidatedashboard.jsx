@@ -3,12 +3,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
-<<<<<<< HEAD
-=======
 
 const statusLabel = (status) =>
   status === 1 ? 'Accepted' : status === 2 ? 'Rejected' : 'Pending';
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 export default function CandidateDashboard() {
   const navigate = useNavigate();
@@ -33,22 +30,11 @@ export default function CandidateDashboard() {
     }
     (async () => {
       try {
-<<<<<<< HEAD
-        const response = await axios.get(`${API_URL}/candidate/dashboard`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setUsername(response.data.candidate);
-        setApplications(response.data.applications);
-=======
         const me = await axios.get(`${API_URL}/me`, { headers: authHeader() });
         setUsername(me.data.username);
         const prof = await axios.get(`${API_URL}/candidate/profile`, { headers: authHeader() });
         setProfileComplete(Boolean(prof.data.complete));
         await loadJobs();
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
       } catch (err) {
         if (err.response?.status === 401) navigate('/login');
         else setError(err.response?.data?.detail || 'Failed to load dashboard.');

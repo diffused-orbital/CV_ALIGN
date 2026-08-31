@@ -6,13 +6,7 @@ from app.models.job import Job
 from app.models.application import Application
 from app.models.profile import Profile
 from app.routers.auth import get_current_user
-<<<<<<< HEAD
-from New_Model.new_main import score_cvs_v2
-import shutil
-import os
-=======
 from app.schemas.application import ApplicationCreate
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 import re
 import uuid
 from pathlib import Path as FilePath
@@ -52,11 +46,7 @@ def _persist_scores(db: Session, job_id: int, ranked_results):
     uploads), which matches the stem of Application.resume_path.
     """
     applications = db.query(Application).filter(Application.job_id == job_id).all()
-<<<<<<< HEAD
-    by_stem = {FilePath(a.resume_path).stem: a for a in applications}
-=======
     by_stem = {FilePath((a.resume_path or "").split("?")[0]).stem: a for a in applications}
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
     for result in ranked_results or []:
         application = by_stem.get(result.get("Name"))
@@ -69,16 +59,7 @@ def _persist_scores(db: Session, job_id: int, ranked_results):
 
     db.commit()
 
-<<<<<<< HEAD
-cloudinary.config(
-    cloud_name="daom8lqfr",
-    api_key='833671224989892',
-    api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
-    secure=True
-)
-=======
 configure_cloudinary()
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 @router.post("/apply")
 def apply_to_job(
@@ -86,25 +67,17 @@ def apply_to_job(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-<<<<<<< HEAD
-=======
     """One-click apply using the candidate's saved profile and resume.
 
     Scoring is not run here; the recruiter triggers it from the job page
     after closing the job (see /recruiter/job/{id}/generate).
     """
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
     # Only candidates can apply to jobs
     if current_user.role != "candidate":
         raise HTTPException(status_code=403, detail="Only candidates can apply to jobs.")
 
-<<<<<<< HEAD
-    # Check if job exists
-    job = db.query(Job).filter(Job.id == job_id).first()
-=======
     # Check if job exists and is still accepting applications
     job = db.query(Job).filter(Job.id == payload.job_id).first()
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if not job.is_open:
@@ -164,16 +137,6 @@ def apply_to_job(
     db.commit()
     db.refresh(application)
 
-<<<<<<< HEAD
-    # Trigger scoring for all resumes under this job and persist the results
-    try:
-        ranked_results = score_cvs_v2(safe_company_name, safe_title)
-        _persist_scores(db, job.id, ranked_results)
-    except Exception as e:
-        print(f"⚠️ Scoring model failed: {e}")
-
-=======
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
     return {
         "message": "Application submitted successfully!",
         "application_id": application.id

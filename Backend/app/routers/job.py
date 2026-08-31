@@ -17,20 +17,6 @@ def list_jobs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-<<<<<<< HEAD
-    # Any authenticated user can browse the list of open jobs to apply to.
-    jobs = db.query(Job).order_by(Job.created_at.desc()).all()
-    return {
-        "jobs": [
-            {
-                "id": job.id,
-                "title": job.title,
-                "company": job.company,
-            }
-            for job in jobs
-        ]
-    }
-=======
     # Any authenticated user can browse jobs. For candidates, annotate each
     # job with whether they have already applied and their application status.
     jobs = db.query(Job).order_by(Job.created_at.desc()).all()
@@ -50,7 +36,6 @@ def list_jobs(
             "status": appn.status if appn else None,
         })
     return {"jobs": result}
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 @router.post("/job/upload")
 def upload_job_with_pdf(

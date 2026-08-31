@@ -11,10 +11,7 @@ try:
     sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-<<<<<<< HEAD
-=======
 from app import config  # noqa: F401  -- loads .env before anything else
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 from .database import Base, engine
 from .models import user
 from app.routers import auth

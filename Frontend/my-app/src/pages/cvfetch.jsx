@@ -94,8 +94,25 @@ export default function JobDetails() {
     }
   };
 
-  const resumeUrl = (link) =>
-    link && link.startsWith('http') ? link : `${API_URL}/${link}`;
+  const handleDownload = async (applicationId) => {
+    setError('');
+    const downloadWindow = window.open('', '_blank');
+    if (!downloadWindow) {
+      setError('Your browser blocked the download window. Please allow pop-ups and try again.');
+      return;
+    }
+
+    try {
+      const res = await axios.get(
+        `${API_URL}/recruiter/application/${applicationId}/resume`,
+        { headers: authHeader() }
+      );
+      downloadWindow.location.replace(res.data.url);
+    } catch (err) {
+      downloadWindow.close();
+      setError(err.response?.data?.detail || 'Failed to prepare a secure resume download.');
+    }
+  };
 
   return (
     <div className="job-details-container">
@@ -159,10 +176,12 @@ export default function JobDetails() {
                     <td>
                       <a
                         className="download-link"
-                        href={resumeUrl(c.resume_link)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
+                        href="#download"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDownload(c.application_id);
+                        }}
                       >
                         Download
                       </a>

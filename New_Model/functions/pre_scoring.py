@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer, util
 from . import others as ot  
 
 def generate_embeddings(texts: list) -> np.ndarray:
-    embeddings_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
     embeddings = embeddings_model.embed_documents(texts)
     return np.array(embeddings)
 

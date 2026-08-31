@@ -29,6 +29,7 @@ def score_cvs_v2(company_name,role_name):
 
     jd_files = cloudinary.api.resources(
         resource_type="raw",
+        type="upload",
         prefix=f"{base_prefix}/job_description"
     )["resources"]
 
