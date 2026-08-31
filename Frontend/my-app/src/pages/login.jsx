@@ -77,6 +77,9 @@ export default function Login() {
         <InlineMessage type="error">{error}</InlineMessage>
 
         <p className="register-link">
+          <span onClick={() => navigate('/forgot-password')}>Forgot password?</span>
+        </p>
+        <p className="register-link">
           New to CV ALIGNER ? <span onClick={() => navigate('/register')}>Register</span>
         </p>
       </div>

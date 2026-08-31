@@ -7,15 +7,7 @@ DB persistence and the response contract the frontend relies on.
 import io
 import pytest
 
-<<<<<<< HEAD
-from conftest import _register, _login
-
-
-def _pdf():
-    return ("resume.pdf", io.BytesIO(b"%PDF-1.4 fake pdf bytes"), "application/pdf")
-=======
 from conftest import _register, _login, _create_profile
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 
 def _post_job(client, headers, title="Backend Engineer", company="Acme"):
@@ -27,19 +19,9 @@ def _post_job(client, headers, title="Backend Engineer", company="Acme"):
     )
 
 
-<<<<<<< HEAD
-def _apply(client, headers, job_id, cgpa=8.5, institute="IIT", degree="BTech"):
-    return client.post(
-        "/apply",
-        headers=headers,
-        data={"job_id": job_id, "cgpa": cgpa, "institute": institute, "degree": degree},
-        files={"file": _pdf()},
-    )
-=======
 def _apply(client, headers, job_id):
     # One-click apply: JSON body, uses the candidate's saved profile.
     return client.post("/apply", headers=headers, json={"job_id": job_id})
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 
 # ---- Auth (login.jsx / register.jsx via api.js) -----------------------------
@@ -70,10 +52,6 @@ class TestAuth:
         assert r.status_code == 401
 
     def test_me_endpoints(self, client, candidate_headers):
-<<<<<<< HEAD
-        # apply.jsx uses GET /me; api.js uses GET /auth/me -- both must work
-=======
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         r1 = client.get("/me", headers=candidate_headers)
         r2 = client.get("/auth/me", headers=candidate_headers)
         assert r1.status_code == 200 and r1.json()["role"] == "candidate"
@@ -83,9 +61,29 @@ class TestAuth:
         assert client.get("/me").status_code == 401
 
 
-<<<<<<< HEAD
-# ---- Jobs (jobupload.jsx + apply.jsx dropdown) ------------------------------
-=======
+class TestForgotPassword:
+    def test_forgot_unknown_email(self, client):
+        r = client.post("/auth/forgot-password", json={"email": "nobody@test.com"})
+        assert r.status_code == 404
+
+    def test_reset_password_flow(self, client):
+        _register(client, "resetu", "reset@test.com", "OldPass1!", "candidate")
+        fp = client.post("/auth/forgot-password", json={"email": "reset@test.com"})
+        assert fp.status_code == 200, fp.text
+        token = fp.json()["reset_token"]
+
+        rp = client.post("/auth/reset-password", json={"token": token, "new_password": "NewPass1!"})
+        assert rp.status_code == 200, rp.text
+
+        # Old password no longer works; new one does.
+        assert _login(client, "reset@test.com", "OldPass1!").status_code == 401
+        assert _login(client, "reset@test.com", "NewPass1!").status_code == 200
+
+    def test_reset_with_invalid_token(self, client):
+        r = client.post("/auth/reset-password", json={"token": "not-a-token", "new_password": "NewPass1!"})
+        assert r.status_code == 400
+
+
 # ---- Candidate profile (profile.jsx) ----------------------------------------
 
 class TestProfile:
@@ -136,7 +134,6 @@ class TestProfile:
 
 
 # ---- Jobs (jobupload.jsx + candidate dashboard) -----------------------------
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 class TestJobs:
     def test_recruiter_can_post_job(self, client, recruiter_headers):
@@ -145,59 +142,31 @@ class TestJobs:
         assert "job_id" in r.json()
 
     def test_candidate_cannot_post_job(self, client, candidate_headers):
-<<<<<<< HEAD
-        r = _post_job(client, candidate_headers)
-        assert r.status_code == 403
-
-    def test_list_jobs_endpoint(self, client, recruiter_headers, candidate_headers):
-        # This endpoint was missing entirely -- apply.jsx dropdown depends on it
-=======
         assert _post_job(client, candidate_headers).status_code == 403
 
     def test_list_jobs_endpoint(self, client, recruiter_headers, candidate_headers):
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         _post_job(client, recruiter_headers, title="Frontend Dev", company="Globex")
         r = client.get("/jobs", headers=candidate_headers)
         assert r.status_code == 200, r.text
         jobs = r.json()["jobs"]
         assert len(jobs) >= 1
         job = jobs[0]
-<<<<<<< HEAD
-        assert set(job.keys()) == {"id", "title", "company"}
-=======
         assert {"id", "title", "company", "applied", "status"} <= set(job.keys())
         assert job["applied"] is False
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
     def test_list_jobs_requires_auth(self, client):
         assert client.get("/jobs").status_code == 401
 
 
-<<<<<<< HEAD
-# ---- Apply (apply.jsx) ------------------------------------------------------
-
-class TestApply:
-    def test_candidate_can_apply(self, client, recruiter_headers, candidate_headers):
-=======
 # ---- Apply (candidate dashboard one-click) ----------------------------------
 
 class TestApply:
     def test_candidate_can_apply(self, client, recruiter_headers, candidate_headers):
         _create_profile(client, candidate_headers)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         r = _apply(client, candidate_headers, job_id)
         assert r.status_code == 200, r.text
         assert "application_id" in r.json()
-<<<<<<< HEAD
-
-    def test_recruiter_cannot_apply(self, client, recruiter_headers):
-        job_id = _post_job(client, recruiter_headers).json()["job_id"]
-        r = _apply(client, recruiter_headers, job_id)
-        assert r.status_code == 403
-
-    def test_duplicate_application_rejected(self, client, recruiter_headers, candidate_headers):
-=======
         # /jobs now reports it as applied
         jobs = client.get("/jobs", headers=candidate_headers).json()["jobs"]
         assert any(j["id"] == job_id and j["applied"] for j in jobs)
@@ -213,39 +182,20 @@ class TestApply:
 
     def test_duplicate_application_rejected(self, client, recruiter_headers, candidate_headers):
         _create_profile(client, candidate_headers)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         assert _apply(client, candidate_headers, job_id).status_code == 200
         assert _apply(client, candidate_headers, job_id).status_code == 400
 
     def test_apply_to_missing_job(self, client, candidate_headers):
-<<<<<<< HEAD
-        r = _apply(client, candidate_headers, 99999)
-        assert r.status_code == 404
-
-    def test_non_pdf_rejected(self, client, recruiter_headers, candidate_headers):
-        job_id = _post_job(client, recruiter_headers).json()["job_id"]
-        r = client.post(
-            "/apply",
-            headers=candidate_headers,
-            data={"job_id": job_id, "cgpa": 8.0, "institute": "X", "degree": "Y"},
-            files={"file": ("resume.txt", io.BytesIO(b"not a pdf"), "text/plain")},
-        )
-        assert r.status_code == 400
-=======
         _create_profile(client, candidate_headers)
         assert _apply(client, candidate_headers, 99999).status_code == 404
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 
 # ---- Candidate dashboard (candidatedashboard.jsx) ---------------------------
 
 class TestCandidateDashboard:
     def test_candidate_dashboard(self, client, recruiter_headers, candidate_headers):
-<<<<<<< HEAD
-=======
         _create_profile(client, candidate_headers)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         _apply(client, candidate_headers, job_id)
         r = client.get("/candidate/dashboard", headers=candidate_headers)
@@ -258,18 +208,11 @@ class TestCandidateDashboard:
         assert client.get("/candidate/dashboard", headers=recruiter_headers).status_code == 403
 
 
-<<<<<<< HEAD
-# ---- Recruiter dashboard + job details (recruiterdashboard.jsx / cvfetch.jsx)
-
-class TestRecruiterDashboard:
-    def test_dashboard_summary(self, client, recruiter_headers, candidate_headers):
-=======
 # ---- Recruiter dashboard + job details --------------------------------------
 
 class TestRecruiterDashboard:
     def test_dashboard_summary(self, client, recruiter_headers, candidate_headers):
         _create_profile(client, candidate_headers)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         _apply(client, candidate_headers, job_id)
         r = client.get("/recruiter/dashboard", headers=recruiter_headers)
@@ -282,10 +225,7 @@ class TestRecruiterDashboard:
         assert client.get("/recruiter/dashboard", headers=candidate_headers).status_code == 403
 
     def test_job_details_returns_candidates(self, client, recruiter_headers, candidate_headers):
-<<<<<<< HEAD
-=======
         _create_profile(client, candidate_headers)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         _apply(client, candidate_headers, job_id)
         r = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers)
@@ -293,27 +233,11 @@ class TestRecruiterDashboard:
         body = r.json()
         assert body["job_title"] == "Backend Engineer"
         cand = body["candidates"][0]
-<<<<<<< HEAD
-        # application_id was added so the frontend can call accept/reject
-=======
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         assert "application_id" in cand
         assert cand["candidate_name"] == "cand_one"
         assert cand["status"] == 0
 
     def test_job_details_owner_only(self, client, recruiter_headers, recruiter2_headers, candidate_headers):
-<<<<<<< HEAD
-        job_id = _post_job(client, recruiter_headers).json()["job_id"]
-        _apply(client, candidate_headers, job_id)
-        # A different recruiter must not see another recruiter's job
-        assert client.get(f"/recruiter/job/{job_id}", headers=recruiter2_headers).status_code == 404
-
-
-# ---- Accept / Reject (cvfetch.jsx action buttons) + RBAC --------------------
-
-class TestAcceptReject:
-    def _setup_application(self, client, recruiter_headers, candidate_headers):
-=======
         _create_profile(client, candidate_headers)
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         _apply(client, candidate_headers, job_id)
@@ -325,7 +249,6 @@ class TestAcceptReject:
 class TestAcceptReject:
     def _setup_application(self, client, recruiter_headers, candidate_headers):
         _create_profile(client, candidate_headers)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         return _apply(client, candidate_headers, job_id).json()["application_id"], job_id
 
@@ -333,10 +256,6 @@ class TestAcceptReject:
         app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
         r = client.post(f"/application/{app_id}/accept", headers=recruiter_headers)
         assert r.status_code == 200, r.text
-<<<<<<< HEAD
-        # candidate dashboard should now reflect Accepted
-=======
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         dash = client.get("/candidate/dashboard", headers=candidate_headers).json()
         assert dash["applications"][0]["status"] == "Accepted"
 
@@ -349,29 +268,16 @@ class TestAcceptReject:
 
     def test_candidate_cannot_accept(self, client, recruiter_headers, candidate_headers):
         app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
-<<<<<<< HEAD
-        r = client.post(f"/application/{app_id}/accept", headers=candidate_headers)
-        assert r.status_code == 403
-
-    def test_non_owner_recruiter_cannot_accept(self, client, recruiter_headers, recruiter2_headers, candidate_headers):
-        app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
-        r = client.post(f"/application/{app_id}/accept", headers=recruiter2_headers)
-        assert r.status_code == 403
-=======
         assert client.post(f"/application/{app_id}/accept", headers=candidate_headers).status_code == 403
 
     def test_non_owner_recruiter_cannot_accept(self, client, recruiter_headers, recruiter2_headers, candidate_headers):
         app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
         assert client.post(f"/application/{app_id}/accept", headers=recruiter2_headers).status_code == 403
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
     def test_accept_missing_application(self, client, recruiter_headers):
         assert client.post("/application/99999/accept", headers=recruiter_headers).status_code == 404
 
 
-<<<<<<< HEAD
-# ---- Score persistence helpers (the core wiring fixed in commit #3) ---------
-=======
 # ---- Job lifecycle: close + generate (Task 3) -------------------------------
 
 class TestJobLifecycle:
@@ -492,7 +398,6 @@ class TestCloudinary:
 
 
 # ---- Score persistence helpers ----------------------------------------------
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 
 class TestScorePersistence:
     def test_split_feedback(self):
@@ -506,19 +411,11 @@ class TestScorePersistence:
         assert _split_feedback(None) == (None, None)
 
     def test_persist_scores_maps_to_application(self, client, recruiter_headers, candidate_headers):
-<<<<<<< HEAD
-        # Apply, then simulate the model returning a score for that resume's UUID
-        job_id = _post_job(client, recruiter_headers).json()["job_id"]
-        _apply(client, candidate_headers, job_id)
-
-        from conftest import TestingSessionLocal, _override_get_db  # noqa
-=======
         _create_profile(client, candidate_headers)
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
         _apply(client, candidate_headers, job_id)
 
         from conftest import TestingSessionLocal
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         from app.models.application import Application
         from app.routers.application import _persist_scores
         from pathlib import Path
@@ -526,11 +423,7 @@ class TestScorePersistence:
         db = TestingSessionLocal()
         try:
             appn = db.query(Application).filter(Application.job_id == job_id).first()
-<<<<<<< HEAD
-            stem = Path(appn.resume_path).stem
-=======
             stem = Path(appn.resume_path.split("?")[0]).stem
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
             _persist_scores(db, job_id, [{
                 "Name": stem,
                 "Score": 87.5,
@@ -543,9 +436,5 @@ class TestScorePersistence:
         finally:
             db.close()
 
-<<<<<<< HEAD
-        # And it surfaces on the recruiter job-details endpoint
-=======
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
         r = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers)
         assert r.json()["candidates"][0]["score"] == 87.5

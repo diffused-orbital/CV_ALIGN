@@ -1,7 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/login';
-import Register from './pages/register';  
+import Register from './pages/register';
+import ForgotPassword from './pages/forgotpassword';
 import CandidateDashboard from './pages/candidatedashboard';
 import Profile from './pages/profile';
 import JobUpload from './pages/jobupload';
@@ -14,6 +15,7 @@ export default function App() {
       <Route index element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/candidate-dashboard" element={<CandidateDashboard />} />
       <Route path="/candidate/profile" element={<Profile />} />
       <Route path="/upload-job" element={<JobUpload />} />

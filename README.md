@@ -153,6 +153,8 @@ pytest tests/
 |---|---|---|
 | POST | `/auth/register` | Register a user |
 | POST | `/auth/login` | Log in, returns a JWT |
+| POST | `/auth/forgot-password` | Request a password-reset token for an email |
+| POST | `/auth/reset-password` | Set a new password using a reset token |
 | GET | `/auth/me`, `/me` | Current user |
 | GET | `/jobs` | List jobs (with the caller's applied state/status) |
 | POST | `/job/upload` | Recruiter posts a job (JD → Cloudinary) |
