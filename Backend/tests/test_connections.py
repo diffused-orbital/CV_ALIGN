@@ -388,13 +388,15 @@ class TestCloudinary:
         assert appn.resume_path == f"https://fake.cloud/{public_id}"
         assert Path(appn.resume_path.split("?")[0]).stem == Path(public_id).stem
 
-    def test_recruiter_sees_resume_download_link(self, client, recruiter_headers, candidate_headers):
+    def test_recruiter_resume_download_is_owner_only(self, client, recruiter_headers, recruiter2_headers, candidate_headers):
+        # Resume delivery moved to a signed, owner-only download endpoint.
         _create_profile(client, candidate_headers)
         job_id = _post_job(client, recruiter_headers).json()["job_id"]
-        _apply(client, candidate_headers, job_id)
-        cand = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers).json()["candidates"][0]
-        # Resume link is a fetchable Cloudinary URL.
-        assert cand["resume_link"].startswith("https://")
+        app_id = _apply(client, candidate_headers, job_id).json()["application_id"]
+
+        assert client.get(f"/recruiter/application/{app_id}/resume", headers=candidate_headers).status_code == 403
+        assert client.get(f"/recruiter/application/{app_id}/resume", headers=recruiter2_headers).status_code == 404
+        assert client.get("/recruiter/application/99999/resume", headers=recruiter_headers).status_code == 404
 
 
 # ---- Score persistence helpers ----------------------------------------------

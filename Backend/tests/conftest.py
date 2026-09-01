@@ -56,21 +56,6 @@ def _reset_db():
     yield
 
 
-<<<<<<< HEAD
-@pytest.fixture(autouse=True)
-def _mock_external_services(monkeypatch):
-    """Stub Cloudinary uploads and the scoring model for every test."""
-    import cloudinary.uploader
-    import app.routers.application as application_mod
-
-    monkeypatch.setattr(
-        cloudinary.uploader,
-        "upload",
-        lambda *a, **k: {"secure_url": "https://fake.cloud/resource.pdf"},
-    )
-    # Default: scoring returns nothing (persistence is unit-tested separately)
-    monkeypatch.setattr(application_mod, "score_cvs_v2", lambda *a, **k: [])
-=======
 # Records every mocked Cloudinary upload call for assertions in tests.
 UPLOAD_CALLS = []
 
@@ -95,20 +80,16 @@ def _mock_external_services(monkeypatch):
 
     UPLOAD_CALLS.clear()
     monkeypatch.setattr(cloudinary.uploader, "upload", _fake_upload)
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
     yield
 
 
 @pytest.fixture
-<<<<<<< HEAD
-=======
 def upload_calls():
     """Cloudinary upload calls recorded during the current test."""
     return UPLOAD_CALLS
 
 
 @pytest.fixture
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
 def client():
     return TestClient(app)
 
@@ -151,8 +132,6 @@ def recruiter2_headers(client):
 @pytest.fixture
 def candidate_headers(client):
     return _auth_header(client, "cand_one", "cand1@test.com", "Passw0rd!", "candidate")
-<<<<<<< HEAD
-=======
 
 
 def _create_profile(client, headers, full_name="Cand One", contact="9990001111",
@@ -179,4 +158,3 @@ def _create_profile(client, headers, full_name="Cand One", contact="9990001111",
 def candidate_with_profile(client, candidate_headers):
     _create_profile(client, candidate_headers)
     return candidate_headers
->>>>>>> bcd5ff554286af570b637883b94f730c65ae88b0
