@@ -19,6 +19,8 @@ reject them — with the outcome reflected instantly on the candidate's dashboar
 - 🤖 **On-demand scoring** — after closing, a recruiter clicks **Generate** to rank the top candidates with strengths/weaknesses
 - ✅ Recruiters **accept/reject** applications (only for their own jobs)
 - 🔄 Candidates get **real-time status updates** and see “No longer accepting” for closed roles
+- 🔑 **Password reset** — request a reset token and set a new password from the login screen
+- 📎 **Secure resume access** — resumes are stored as private Cloudinary files and served through short-lived, signed download links
 - 💬 **Inline, specific error messages** across the UI (no popups)
 
 ---
@@ -29,7 +31,7 @@ reject them — with the outcome reflected instantly on the candidate's dashboar
 - **Backend:** FastAPI, SQLAlchemy, SQLite
 - **Auth:** JWT (python-jose), bcrypt (passlib)
 - **Storage:** Cloudinary (resumes & job descriptions)
-- **AI model:** Sentence-Transformers + TF-IDF + experience scoring, LangChain + Google Gemini for feedback, spaCy/NLTK/PyMuPDF/PyPDF2 for extraction
+- **AI model:** Sentence-Transformers + TF-IDF + experience scoring, LangChain + Google Gemini (embeddings & feedback), NLTK/PyMuPDF/PyPDF2 for extraction
 
 ---
 
@@ -138,12 +140,15 @@ pytest tests/
 2. Fill in your **profile** once (name, contact, CGPA, degree, institute) and upload a resume — stored on Cloudinary.
 3. On the dashboard, browse **open roles** and click **Apply** — the saved profile and resume are reused automatically.
 4. Track each application's status; closed roles show **“No longer accepting applications.”**
+5. Forgot your password? Reset it from the login screen (email → new password).
 
 **Recruiter**
 1. Register (role = recruiter), log in, and **post a job** (uploads the JD to Cloudinary).
-2. Open a job to see its applicants. Click **Close applications** to stop new applications.
+2. Open a job to see its applicants, and download any resume via a secure signed link. Click **Close applications** to stop new applications.
 3. Click **Generate** to run the scoring model over all applicants and rank the top candidates with strengths/weaknesses.
 4. **Accept / Reject** candidates — the status updates on their dashboard.
+
+> Scoring downloads the job description and every resume from Cloudinary using signed URLs (raw PDFs are not publicly deliverable), then computes a hybrid score and Gemini-generated feedback. The **`GOOGLE_API_KEY` must be valid** for scoring to run.
 
 ---
 
@@ -164,6 +169,7 @@ pytest tests/
 | GET | `/candidate/dashboard` | Candidate's applications |
 | GET | `/recruiter/dashboard` | Recruiter's jobs summary |
 | GET | `/recruiter/job/{id}` | Job detail with ranked candidates + `is_open` |
+| GET | `/recruiter/application/{id}/resume` | Short-lived signed resume download URL (owner only) |
 | POST | `/recruiter/job/{id}/close` | Close a job (owner only) |
 | POST | `/recruiter/job/{id}/generate` | Score applicants, return top ranked (owner only) |
 | POST | `/application/{id}/accept` | Accept an application (owner only) |
