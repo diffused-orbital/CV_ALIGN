@@ -2,6 +2,7 @@ import './apply.css';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 export default function CandidateUpload() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export default function CandidateUpload() {
     }
 
     // Fetch candidate info (name)
-    axios.get('http://localhost:8000/me', {
+    axios.get(`${API_URL}/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => {
@@ -36,7 +37,7 @@ export default function CandidateUpload() {
     });
 
     // Fetch list of available jobs
-    axios.get('http://localhost:8000/jobs', {
+    axios.get(`${API_URL}/jobs`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => {
@@ -77,7 +78,7 @@ export default function CandidateUpload() {
     data.append('file', formData.resume);
 
     try {
-      const res = await axios.post('http://localhost:8000/apply', data, {
+      const res = await axios.post(`${API_URL}/apply`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

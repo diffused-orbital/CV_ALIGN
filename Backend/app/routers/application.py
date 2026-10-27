@@ -1,40 +1,95 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.models.job import Job
 from app.models.application import Application
+from app.models.profile import Profile
 from app.routers.auth import get_current_user
-from New_Model.new_main import score_cvs_v2
-import shutil
-import os
+from app.schemas.application import ApplicationCreate
+import re
 import uuid
+from pathlib import Path as FilePath
 import cloudinary
 import cloudinary.uploader
+from app.config import configure_cloudinary
 
 router = APIRouter(tags=["Applications"])
 
-cloudinary.config(
-    cloud_name="daom8lqfr",
-    api_key='833671224989892',
-    api_secret='GhNtyL1tRnTOWchvUSlJqsFUExU',
-    secure=True
-)
+
+def _split_feedback(feedback: str):
+    """Split the LLM feedback string into (strengths, weaknesses)."""
+    if not feedback:
+        return None, None
+    match = re.search(r"(?is)strengths\s*:?(.*?)weaknesses\s*:?(.*)", feedback)
+    if match:
+        strengths = match.group(1).strip()
+        weaknesses = match.group(2).strip()
+        return strengths or None, weaknesses or None
+    return feedback.strip() or None, None
+
+
+def _authorize_status_change(db: Session, application: Application, current_user: User):
+    """Only the recruiter who posted the job may change an application's status."""
+    if current_user.role != "recruiter":
+        raise HTTPException(status_code=403, detail="Only recruiters can update application status.")
+
+    job = db.query(Job).filter(Job.id == application.job_id).first()
+    if not job or job.posted_by != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only manage applications for your own jobs.")
+
+
+def _persist_scores(db: Session, job_id: int, ranked_results):
+    """Map ranked model results back onto Application rows and save them.
+
+    The model keys each result by the resume filename stem (a UUID for
+    uploads), which matches the stem of Application.resume_path.
+    """
+    applications = db.query(Application).filter(Application.job_id == job_id).all()
+    by_stem = {FilePath((a.resume_path or "").split("?")[0]).stem: a for a in applications}
+
+    for result in ranked_results or []:
+        application = by_stem.get(result.get("Name"))
+        if not application:
+            continue
+        application.score = result.get("Score")
+        strengths, weaknesses = _split_feedback(result.get("Feedback"))
+        application.strengths = strengths
+        application.weaknesses = weaknesses
+
+    db.commit()
+
+configure_cloudinary()
 
 @router.post("/apply")
 def apply_to_job(
-    job_id: int = Form(...),
-    cgpa: float = Form(...),
-    institute: str = Form(...),
-    degree: str = Form(...),
-    file: UploadFile = File(...),
+    payload: ApplicationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Check if job exists
-    job = db.query(Job).filter(Job.id == job_id).first()
+    """One-click apply using the candidate's saved profile and resume.
+
+    Scoring is not run here; the recruiter triggers it from the job page
+    after closing the job (see /recruiter/job/{id}/generate).
+    """
+    # Only candidates can apply to jobs
+    if current_user.role != "candidate":
+        raise HTTPException(status_code=403, detail="Only candidates can apply to jobs.")
+
+    # Check if job exists and is still accepting applications
+    job = db.query(Job).filter(Job.id == payload.job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if not job.is_open:
+        raise HTTPException(status_code=400, detail="This job is no longer accepting applications.")
+
+    # Require a completed profile (with a resume) before applying
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if not profile or not profile.resume_path:
+        raise HTTPException(
+            status_code=400,
+            detail="Complete your profile (including a resume) before applying.",
+        )
 
     # Prevent duplicate applications
     existing = db.query(Application).filter(
@@ -44,57 +99,43 @@ def apply_to_job(
     if existing:
         raise HTTPException(status_code=400, detail="You have already applied to this job.")
 
-    # Validate file format
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF resumes are allowed.")
+    safe_company_name = job.company.replace(" ", "_")
+    safe_title = job.title.replace(" ", "_")
 
-    company_name = job.company
-    title = job.title
-    safe_company_name = company_name.replace(" ", "_")
-    safe_title = title.replace(" ", "_")
-
-    # Generate unique filename
-    file_ext = file.filename.split(".")[-1]
-    filename = f"{uuid.uuid4()}.{file_ext}"
-    upload_dir = f"uploads/{safe_company_name}/{safe_title}/resumes"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, filename)
-
-    # Save file locally
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    # Upload to Cloudinary
+    # Copy the profile resume into this job's Cloudinary folder so scoring
+    # (which lists resumes by prefix) can find it. The UUID filename stem is
+    # the join key used when persisting scores back onto the application.
+    filename = f"{uuid.uuid4()}.pdf"
     cloudinary_path = f"{safe_company_name}/{safe_title}/resumes/{filename}"
+    # Prefer the local file; fall back to the stored Cloudinary URL if it is gone.
+    source = profile.resume_path
+    if not (source and FilePath(source).exists()):
+        source = profile.resume_url
+    configure_cloudinary()
     try:
-        cloudinary.uploader.upload(
-            file_path,
+        result = cloudinary.uploader.upload(
+            source,
             resource_type="raw",
             public_id=cloudinary_path,
-            overwrite=True
+            overwrite=True,
         )
+        resume_url = result["secure_url"]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {e}")
 
-    # Insert application in DB
+    # Insert application in DB, copying details from the profile
     application = Application(
         job_id=job.id,
         user_id=current_user.id,
-        resume_path=file_path.replace("\\", "/"),
+        resume_path=resume_url,
         status=0,
-        cgpa=cgpa,
-        institute=institute,
-        degree=degree
+        cgpa=profile.cgpa,
+        institute=profile.institute,
+        degree=profile.degree
     )
     db.add(application)
     db.commit()
     db.refresh(application)
-
-    # Trigger scoring
-    try:
-        score_cvs_v2(safe_company_name, safe_title)
-    except Exception as e:
-        print(f"⚠️ Scoring model failed: {e}")
 
     return {
         "message": "Application submitted successfully!",
@@ -111,6 +152,8 @@ def accept_application(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
+    _authorize_status_change(db, application, current_user)
+
     application.status = 1  # Accepted
     db.commit()
     return {"message": "Application accepted successfully", "application_id": application_id}
@@ -125,6 +168,8 @@ def reject_application(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    application.status = -1  # Rejected
+    _authorize_status_change(db, application, current_user)
+
+    application.status = 2  # Rejected
     db.commit()
     return {"message": "Application rejected successfully", "application_id": application_id}

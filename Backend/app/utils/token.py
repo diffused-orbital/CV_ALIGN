@@ -5,9 +5,8 @@ from passlib.context import CryptContext
 from app.models.user import User
 from sqlalchemy.orm import Session
 
-SECRET_KEY = "cv_align_super_secret_key_123"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+from app.config import JWT_SECRET_KEY as SECRET_KEY, JWT_ALGORITHM as ALGORITHM
+from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

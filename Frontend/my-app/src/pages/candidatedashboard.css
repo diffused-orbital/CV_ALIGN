@@ -503,3 +503,72 @@
   fill: white;
   transition: fill 0.3s ease;
 }
+
+/* --- Profile banner, notices, and inline apply --- */
+.profile-banner {
+  position: relative;
+  z-index: 2;
+  margin: 6.5rem auto 0.5rem;
+  max-width: 500px;
+  width: 90%;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  color: #eaeaea;
+  font-family: "Space Grotesk", sans-serif;
+  text-align: center;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #00ff90;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.dashboard-notice {
+  position: relative;
+  z-index: 2;
+  margin: 0.4rem auto;
+  max-width: 500px;
+  width: 90%;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.dashboard-notice.success {
+  background: rgba(76, 175, 80, 0.2);
+  color: #d7ffd9;
+}
+
+.dashboard-notice.error {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ffd7d7;
+}
+
+.apply-inline-btn {
+  padding: 0.4rem 1.1rem;
+  border: none;
+  border-radius: 18px;
+  background-color: black;
+  color: white;
+  font-family: "Space Grotesk", sans-serif;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.apply-inline-btn:hover {
+  background-color: white;
+  color: black;
+  transform: scale(1.05);
+}
+
+.status.closed {
+  color: #ff9800;
+}

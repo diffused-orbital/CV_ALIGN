@@ -1,0 +1,18 @@
+.inline-message {
+  margin: 0.6rem 0;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.inline-message.error {
+  background: rgba(244, 67, 54, 0.18);
+  color: #ffd7d7;
+}
+
+.inline-message.success {
+  background: rgba(76, 175, 80, 0.18);
+  color: #d7ffd9;
+}

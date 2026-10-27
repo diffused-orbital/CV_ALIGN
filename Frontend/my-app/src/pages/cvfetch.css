@@ -117,3 +117,75 @@
   font-style: italic;
   color: #ccc;
 }
+
+/* Job controls (close / generate) */
+.job-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.job-state {
+  font-weight: bold;
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
+}
+
+.job-state.open {
+  color: #90ee90;
+  background: rgba(76, 175, 80, 0.15);
+}
+
+.job-state.closed {
+  color: #ff9800;
+  background: rgba(255, 152, 0, 0.15);
+}
+
+.control-btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: #607d8b;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.control-btn:hover {
+  background-color: #546e7a;
+}
+
+.control-btn.generate {
+  background-color: #4caf50;
+}
+
+.control-btn.generate:hover {
+  background-color: #43a047;
+}
+
+.control-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.job-notice {
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  margin: 0 auto 1rem;
+  max-width: 700px;
+}
+
+.job-notice.success {
+  background: rgba(76, 175, 80, 0.18);
+  color: #d7ffd9;
+}
+
+.job-notice.error {
+  background: rgba(244, 67, 54, 0.18);
+  color: #ffd7d7;
+}

@@ -2,6 +2,7 @@ import './jobupload.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../config';
 
 export default function JobUpload() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export default function JobUpload() {
     data.append('jd_file', formData.jobDescription);
 
     try {
-      const response = await axios.post('http://localhost:8000/job/upload', data, {
+      const response = await axios.post(`${API_URL}/job/upload`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -49,7 +50,7 @@ export default function JobUpload() {
 
     } catch (error) {
       console.error("Upload error:", error);
-      setMessage("❌ Failed to upload job. Try again.");
+      setMessage("❌ " + (error.response?.data?.detail || "Failed to upload job. Try again."));
     }
   };
 

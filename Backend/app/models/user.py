@@ -12,6 +12,7 @@ class User(Base):
     role = Column(String)  # "recruiter", "candidate", "admin"
     jobs = relationship("Job", back_populates="recruiter")  # for recruiters
     applications = relationship("Application", back_populates="candidate")  # for candidates
+    profile = relationship("Profile", back_populates="user", uselist=False)  # for candidates
 
 # class User(Base):
 #     __tablename__ = "users"

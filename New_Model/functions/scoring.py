@@ -35,7 +35,7 @@ Strengths:
 Weaknesses:
 """)
     
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.2)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.2)
     chain = prompt_template | llm | StrOutputParser()
     
     feedback = chain.invoke({
@@ -73,7 +73,8 @@ def process_resumes(resume_urls: list, jd_file_url: str) -> list:
             # print("Embedding score: ",embed_score)
             # print("TF-IDF score: ",tfidf)
             # print("Experience score: ",exp_score)
-        candidate_name = re.split('_CV', file, flags=re.IGNORECASE)[0]
+        filename = os.path.basename(url.split('?')[0])
+        candidate_name = re.split(r'_CV', os.path.splitext(filename)[0], flags=re.IGNORECASE)[0]
         results.append({
             "Name": candidate_name,
             "Score": final_score,

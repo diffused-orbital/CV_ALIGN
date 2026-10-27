@@ -3,12 +3,39 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.job import Job
 from app.models.user import User
+from app.models.application import Application
 from app.routers.auth import get_current_user
+from app.config import configure_cloudinary
 from datetime import datetime
 import os
 import shutil
 
 router = APIRouter()
+
+@router.get("/jobs")
+def list_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Any authenticated user can browse jobs. For candidates, annotate each
+    # job with whether they have already applied and their application status.
+    jobs = db.query(Job).order_by(Job.created_at.desc()).all()
+    my_apps = {
+        a.job_id: a
+        for a in db.query(Application).filter(Application.user_id == current_user.id).all()
+    }
+    result = []
+    for job in jobs:
+        appn = my_apps.get(job.id)
+        result.append({
+            "id": job.id,
+            "title": job.title,
+            "company": job.company,
+            "is_open": bool(job.is_open),
+            "applied": appn is not None,
+            "status": appn.status if appn else None,
+        })
+    return {"jobs": result}
 
 @router.post("/job/upload")
 def upload_job_with_pdf(
@@ -32,6 +59,7 @@ def upload_job_with_pdf(
 
     # Cloudinary Upload Section
     import cloudinary.uploader
+    configure_cloudinary()
 
     safe_company_name = company.replace(" ", "_")
     safe_title = title.replace(" ", "_")

@@ -1,35 +1,34 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import JSONResponse
-from typing import List
+from fastapi import FastAPI, Depends
 import os
-import sys 
-import shutil
+import sys
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
+
+# Windows consoles default to cp1252, which can't encode the emoji used in
+# debug prints; that would raise UnicodeEncodeError and 500 the request.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+from app import config  # noqa: F401  -- loads .env before anything else
 from .database import Base, engine
-from .models import user  
+from .models import user
 from app.routers import auth
 from app.utils.deps import get_current_user
 from app.models.user import User
-from fastapi import Depends
 
 from app.database import create_tables
 create_tables()
 
 Base.metadata.create_all(bind=engine)
 
-
+# Make the repo root importable so routers can `import New_Model.*`
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-
-
-from New_Model.new_main import score_cvs_v2
 
 
 app = FastAPI()
 
-origins = [
-    "https://localhost:5173"
-]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -43,55 +42,6 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @app.get("/")
 def read_root():
     return {"message": "Backend is up and running!"}
-
-@app.post("/score/")
-async def score_resumes(
-    job_desc: UploadFile = File(...),
-    cvs: List[UploadFile] = File(...),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "recruiter":
-        raise HTTPException(status_code=403, detail="Access denied: Recruiters only")
-    # Save job description
-    job_desc_path = os.path.join(UPLOAD_DIR, job_desc.filename)
-    with open(job_desc_path, "wb") as f:
-        shutil.copyfileobj(job_desc.file, f)
-
-    # Save CVs
-    cv_paths = []
-    for cv in cvs:
-        cv_path = os.path.join(UPLOAD_DIR, cv.filename)
-        with open(cv_path, "wb") as f:
-            shutil.copyfileobj(cv.file, f)
-        cv_paths.append(cv_path)
-
-    # Run the new scoring function
-    try:
-        results = score_cvs_v2(job_desc_path, cv_paths, top_k=5)
-        return JSONResponse(content={"results": results})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    
-@app.post("/cloud_score/")
-async def cloud_score(
-    company_name: str = Form(...),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "recruiter":
-        raise HTTPException(status_code=403, detail="Access denied: Recruiters only")
-    
-    try:
-        cloud_name = "daom8lqfr" 
-        results = score_cvs_v2(cloud_name, company_name)
-        return JSONResponse(content={"results": results})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-@app.post("/upload_cv/")
-async def upload_cv(company_name: str = Form(...), file: UploadFile = File(...)):
-    # Just log for now
-    print(f"Resume received for {company_name}: {file.filename}")
-    return {"status": "ok", "company": company_name, "filename": file.filename}
 
 @app.get("/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
@@ -121,8 +71,3 @@ app.include_router(recruiter.router)
 from fastapi.staticfiles import StaticFiles
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-
-
-"""Incoming user data: {'email': 'arnavtiku@gmail.com', 
-'username': 'Tiku_Arnav', 'password': 'Password@2025', 
-'role': 'candidate'}"""

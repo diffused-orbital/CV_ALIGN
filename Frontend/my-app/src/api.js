@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = 'http://127.0.0.1:8000'; // adjust if hosted elsewhere
+import { API_URL } from './config';
 
 // ✅ Register new user
 const registerUser = async (userData) => {
@@ -49,4 +48,19 @@ const fetchUserProfile = async (token) => {
   }
 };
 
-export { registerUser, loginUser, fetchUserProfile };
+// ✅ Request a password reset token for an email
+const forgotPassword = async (email) => {
+  const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+  return response.data; // { message, reset_token }
+};
+
+// ✅ Reset the password using a reset token
+const resetPassword = async (token, newPassword) => {
+  const response = await axios.post(`${API_URL}/auth/reset-password`, {
+    token,
+    new_password: newPassword,
+  });
+  return response.data; // { message }
+};
+
+export { registerUser, loginUser, fetchUserProfile, forgotPassword, resetPassword };

@@ -2,6 +2,7 @@ import './login.css'; // reuse existing styles
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { registerUser } from '../api'; // this should point to src/api.js
+import InlineMessage from '../components/InlineMessage';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -12,6 +13,8 @@ export default function Register() {
     password: '',
     role: '',
   });
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const handleChange = (e) => {
     setForm(prev => ({
@@ -22,14 +25,15 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setMessage('');
     try {
       await registerUser(form);
-      alert("✅ Registration successful!");
-      navigate('/login'); // go to login page
+      setMessage('Registration successful! Redirecting to login…');
+      setTimeout(() => navigate('/login'), 1200);
     } catch (err) {
-       console.error("FULL ERROR:", err);
-       console.error("RESPONSE:", err.response?.data);
-       alert("❌ Registration failed: " + (err.response?.data?.detail || "Unknown error"));
+       console.error("Registration error:", err.response?.data);
+       setError(err.response?.data?.detail || 'Registration failed. Please try again.');
     }
   };
 
@@ -86,6 +90,9 @@ export default function Register() {
 
           <button type="submit">Register</button>
         </form>
+
+        <InlineMessage type="error">{error}</InlineMessage>
+        <InlineMessage type="success">{message}</InlineMessage>
 
         <p className="register-link">
           Already have an account?{' '}
