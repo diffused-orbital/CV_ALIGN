@@ -1,19 +1,15 @@
-import re
 import time
-from pathlib import PurePosixPath
-from urllib.parse import unquote, urlparse
 
-import cloudinary.utils
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.database import get_db, lock_job
 from app.routers.auth import get_current_user
 from app.models.user import User
 from app.models.job import Job
 from app.models.application import Application
 from app.schemas.job_details import JobDetail, CandidateInfo
 from app.routers.application import _persist_scores
-from app.config import configure_cloudinary
+from app.utils.storage import cloudinary_asset_reference as _cloudinary_asset_reference, signed_download_url
 from New_Model.new_main import score_cvs_v2
 
 router = APIRouter(prefix="/recruiter", tags=["Recruiter Dashboard"])
@@ -42,29 +38,6 @@ def _candidate_info(db: Session, app: Application) -> CandidateInfo:
         weaknesses=app.weaknesses,
         status=app.status,
     )
-
-
-def _cloudinary_asset_reference(url: str) -> tuple[str, None, str]:
-    """Extract a raw asset's public ID and delivery type from a Cloudinary URL."""
-    path_parts = [unquote(part) for part in urlparse(url).path.split("/") if part]
-    try:
-        resource_index = path_parts.index("raw")
-        delivery_type = path_parts[resource_index + 1]
-    except (ValueError, IndexError) as exc:
-        raise ValueError("The stored resume is not a valid Cloudinary raw-file URL.") from exc
-
-    asset_parts = path_parts[resource_index + 2:]
-    if asset_parts and re.fullmatch(r"v\d+", asset_parts[0]):
-        asset_parts = asset_parts[1:]
-    if not asset_parts:
-        raise ValueError("The stored resume does not include a Cloudinary public ID.")
-
-    filename = PurePosixPath(asset_parts[-1])
-    if not filename.suffix:
-        raise ValueError("The stored resume does not include a file extension.")
-    # Cloudinary raw assets include their extension in the public ID. Passing
-    # the ID without it makes the signed download endpoint return 404.
-    return "/".join(asset_parts), None, delivery_type
 
 
 @router.get("/dashboard")
@@ -137,17 +110,8 @@ def get_resume_download_url(
         raise HTTPException(status_code=404, detail="No Cloudinary resume is available for this application")
 
     try:
-        public_id, file_format, delivery_type = _cloudinary_asset_reference(application.resume_path)
         expires_at = int(time.time()) + 300
-        configure_cloudinary()
-        signed_url = cloudinary.utils.private_download_url(
-            public_id,
-            file_format,
-            resource_type="raw",
-            type=delivery_type,
-            attachment=True,
-            expires_at=expires_at,
-        )
+        signed_url = signed_download_url(application.resume_path, attachment=True)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -161,6 +125,7 @@ def close_job(
     current_user: User = Depends(get_current_user)
 ):
     """Close a job so it stops accepting applications."""
+    lock_job(db)
     job = _owned_job(db, job_id, current_user)
     job.is_open = False
     db.commit()
@@ -183,13 +148,18 @@ def generate_scores(
     if job.is_open:
         raise HTTPException(status_code=400, detail="Close the job before generating scores.")
 
-    safe_company_name = job.company.replace(" ", "_")
-    safe_title = job.title.replace(" ", "_")
+    applications = db.query(Application).filter(Application.job_id == job.id).all()
+    if not applications:
+        return {"message": "Scored 0 candidate(s).", "job_id": job.id, "scored_count": 0, "candidates": []}
     try:
-        ranked_results = score_cvs_v2(safe_company_name, safe_title)
-        _persist_scores(db, job.id, ranked_results)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Scoring failed: {e}")
+        ranked_results = score_cvs_v2(
+            job.description_path,
+            [{"ApplicationId": a.id, "ResumeUrl": a.resume_path} for a in applications],
+        )
+        scored_count = _persist_scores(db, job.id, ranked_results)
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=502, detail="Scoring failed. No scores were saved. Check storage and model availability, then retry.") from exc
 
     top_applications = (
         db.query(Application)
@@ -201,7 +171,8 @@ def generate_scores(
     candidates = [_candidate_info(db, app) for app in top_applications]
 
     return {
-        "message": f"Scored {len(candidates)} candidate(s).",
+        "message": f"Scored {scored_count} candidate(s).",
         "job_id": job.id,
-        "candidates": [c.dict() for c in candidates],
+        "scored_count": scored_count,
+        "candidates": [c.model_dump() for c in candidates],
     }

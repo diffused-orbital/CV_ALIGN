@@ -2,16 +2,16 @@
   font-family: 'Space Grotesk', sans-serif;
   background: url('./background.jpg') no-repeat center center/cover;
   min-height: 100vh;
-  min-width: 100vw;
-  position: fixed;
+  width: 100%;
+  position: relative;
   top: 0; left: 0;
   color: white;
   backdrop-filter: blur(4px);
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .brand {
-  position: fixed;
+  position: absolute;
   top: 2rem;
   left: 2rem;
   font-family: 'Orbitron', sans-serif;
@@ -62,7 +62,8 @@
   align-items: center;
   justify-content: flex-start;
   min-height: 100vh;
-  padding-top: 8vh;
+  padding: 7rem 0 2rem;
+  box-sizing: border-box;
 }
 
 .greeting {
@@ -143,8 +144,6 @@
   overflow: hidden;
   box-shadow: none;
   margin-top: 2.5rem;
-  max-height: 340px;
-  overflow-y: auto;
   box-sizing: border-box;
   padding-bottom: 2rem;
   scroll-padding-bottom: 5rem;

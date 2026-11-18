@@ -19,7 +19,7 @@ reject them — with the outcome reflected instantly on the candidate's dashboar
 - 🤖 **On-demand scoring** — after closing, a recruiter clicks **Generate** to rank the top candidates with strengths/weaknesses
 - ✅ Recruiters **accept/reject** applications (only for their own jobs)
 - 🔄 Candidates get **real-time status updates** and see “No longer accepting” for closed roles
-- 🔑 **Password reset** — request a reset token and set a new password from the login screen
+- 🔑 **Password reset** — request an emailed, single-use reset link from the login screen
 - 📎 **Secure resume access** — resumes are stored as private Cloudinary files and served through short-lived, signed download links
 - 💬 **Inline, specific error messages** across the UI (no popups)
 
@@ -29,7 +29,7 @@ reject them — with the outcome reflected instantly on the candidate's dashboar
 
 - **Frontend:** React + Vite, React Router DOM, Axios, vanilla CSS
 - **Backend:** FastAPI, SQLAlchemy, SQLite
-- **Auth:** JWT (python-jose), bcrypt (passlib)
+- **Auth:** JWT (python-jose), bcrypt
 - **Storage:** Cloudinary (resumes & job descriptions)
 - **AI model:** Sentence-Transformers + TF-IDF + experience scoring, LangChain + Google Gemini (embeddings & feedback), NLTK/PyMuPDF/PyPDF2 for extraction
 
@@ -80,9 +80,15 @@ Secrets are **not** committed. Copy the example files and fill them in locally
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 | `GOOGLE_API_KEY` | Google Gemini API key (used by LangChain) |
-| `JWT_SECRET_KEY` | Secret used to sign JWTs |
+| `GEMINI_CHAT_MODEL` | Feedback model, defaults to `gemini-3.5-flash-lite` |
+| `GEMINI_EMBEDDING_MODEL` | Embeddings model, defaults to `models/gemini-embedding-001` |
+| `JWT_SECRET_KEY` | Random signing secret of at least 32 characters, required at startup |
 | `JWT_ALGORITHM` | JWT algorithm (default `HS256`) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime in minutes (default `60`) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` | Password-reset mail server and sender |
+| `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_STARTTLS` | SMTP authentication and TLS, enabled by default |
+| `FRONTEND_URL` | Trusted frontend origin used in reset links |
+| `DATABASE_URL` | Optional SQLite URL for a separate local/test database |
 
 **Frontend** — optionally copy `Frontend/my-app/.env.example` to `Frontend/my-app/.env`:
 
@@ -120,10 +126,34 @@ npm run dev
 
 App runs at `http://localhost:5173`.
 
+### Local password-reset verification
+
+Run a local test SMTP inbox before starting the backend. The development
+requirements include `aiosmtpd`.
+
+```bash
+python -m aiosmtpd -n -l 127.0.0.1:1025
+```
+
+Set `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`,
+`SMTP_FROM=no-reply@cv-align.test`, and `SMTP_STARTTLS=false` for this local inbox.
+Configure authenticated SMTP with STARTTLS for external email delivery.
+
+Initialize scoring resources once during setup.
+
+```bash
+python -m nltk.downloader wordnet punkt_tab stopwords
+```
+
+PDF uploads accept valid, unencrypted files up to 10 MB. New assets use
+Cloudinary authenticated delivery and job-specific IDs. Download links expire
+after five minutes. Scoring uses the job and application records in the database
+and saves a complete batch by application ID.
+
 ### ✅ Running the backend tests
 
-The suite uses an isolated in-memory database and mocks Cloudinary/Gemini, so no
-real credentials or the heavy ML stack are required.
+The suite uses isolated SQLite databases, synthetic credentials, and mocked
+Cloudinary/Gemini services. It includes security and concurrent-application regressions.
 
 ```bash
 pip install -r Backend/requirements-dev.txt
@@ -140,7 +170,7 @@ pytest tests/
 2. Fill in your **profile** once (name, contact, CGPA, degree, institute) and upload a resume — stored on Cloudinary.
 3. On the dashboard, browse **open roles** and click **Apply** — the saved profile and resume are reused automatically.
 4. Track each application's status; closed roles show **“No longer accepting applications.”**
-5. Forgot your password? Reset it from the login screen (email → new password).
+5. Request a reset email from the login screen, then open its link to choose a new password. The link expires after 15 minutes and works once. A successful reset revokes earlier login sessions.
 
 **Recruiter**
 1. Register (role = recruiter), log in, and **post a job** (uploads the JD to Cloudinary).
@@ -158,12 +188,13 @@ pytest tests/
 |---|---|---|
 | POST | `/auth/register` | Register a user |
 | POST | `/auth/login` | Log in, returns a JWT |
-| POST | `/auth/forgot-password` | Request a password-reset token for an email |
+| POST | `/auth/forgot-password` | Email a password-reset link, with a generic response |
 | POST | `/auth/reset-password` | Set a new password using a reset token |
 | GET | `/auth/me`, `/me` | Current user |
 | GET | `/jobs` | List jobs (with the caller's applied state/status) |
 | POST | `/job/upload` | Recruiter posts a job (JD → Cloudinary) |
 | GET | `/candidate/profile` | Get the candidate's profile |
+| GET | `/candidate/profile/resume` | Signed download of the candidate's own resume |
 | POST | `/candidate/profile` | Create/update profile + upload resume |
 | POST | `/apply` | One-click apply (`{ "job_id": N }`) using the saved profile |
 | GET | `/candidate/dashboard` | Candidate's applications |
@@ -174,6 +205,7 @@ pytest tests/
 | POST | `/recruiter/job/{id}/generate` | Score applicants, return top ranked (owner only) |
 | POST | `/application/{id}/accept` | Accept an application (owner only) |
 | POST | `/application/{id}/reject` | Reject an application (owner only) |
+| POST | `/application/{id}/revert` | Return an application to Pending (owner only) |
 
 > The legacy `/score/`, `/cloud_score/` and `/upload_cv/` endpoints have been removed.
 

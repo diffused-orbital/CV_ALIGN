@@ -9,7 +9,9 @@ def is_url(path: str) -> bool:
 
 def extract_text_from_pdf(file_stream) -> str:
     reader = PdfReader(file_stream)
-    text = ' '.join([page.extract_text() for page in reader.pages if page.extract_text()])
+    text = ' '.join(page.extract_text() or '' for page in reader.pages)
+    if not text.strip():
+        raise ValueError('PDF has no readable text. Upload a text-based PDF.')
     return text
 
 def extract_text_from_docx(file_stream) -> str:
@@ -18,7 +20,7 @@ def extract_text_from_docx(file_stream) -> str:
 
 def read_resume(file_path: str) -> str:
     if is_url(file_path):
-        response = requests.get(file_path)
+        response = requests.get(file_path, timeout=(10, 60))
         response.raise_for_status()
         content = response.content
         # Signed download URLs point at a /download endpoint with no file

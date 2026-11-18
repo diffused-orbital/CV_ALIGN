@@ -5,10 +5,7 @@ from app.models.job import Job
 from app.models.user import User
 from app.models.application import Application
 from app.routers.auth import get_current_user
-from app.config import configure_cloudinary
-from datetime import datetime
-import os
-import shutil
+from app.utils.storage import upload_pdf, delete_uploaded_pdf
 
 router = APIRouter()
 
@@ -49,46 +46,20 @@ def upload_job_with_pdf(
     if current_user.role != "recruiter":
         raise HTTPException(status_code=403, detail="Only recruiters can post jobs.")
 
-    # Save PDF locally (replace this with cloud upload later)
-    upload_dir = "uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_location = os.path.join(upload_dir, jd_file.filename)
-
-    with open(file_location, "wb") as buffer:
-        shutil.copyfileobj(jd_file.file, buffer)
-
-    # Cloudinary Upload Section
-    import cloudinary.uploader
-    configure_cloudinary()
-
-    safe_company_name = company.replace(" ", "_")
-    safe_title = title.replace(" ", "_")
-    cloudinary_path = f"{safe_company_name}/{safe_title}/job_description"
-
-    # Upload job description to Cloudinary
-    cloudinary_result = cloudinary.uploader.upload(
-        file_location,
-        resource_type="raw",
-        type="upload",
-        public_id=cloudinary_path,
-        overwrite=True
-    )
-
-    cloudinary_jd_url = cloudinary_result["secure_url"]
-
-
-    # Save job in DB
-    new_job = Job(
-        title=title,
-        company=company,
-        description_path=cloudinary_jd_url,
-        posted_by=current_user.id,
-        created_at=datetime.utcnow()
-    )
-
+    new_job = Job(title=title, company=company, description_path="pending", posted_by=current_user.id)
     db.add(new_job)
-    db.commit()
-    db.refresh(new_job)
+    db.flush()
+    cloudinary_jd_url = None
+    try:
+        cloudinary_jd_url = upload_pdf(jd_file, f"cv_align/jobs/{new_job.id}/jd")
+        new_job.description_path = cloudinary_jd_url
+        db.commit()
+        db.refresh(new_job)
+    except Exception:
+        db.rollback()
+        if cloudinary_jd_url:
+            delete_uploaded_pdf(cloudinary_jd_url)
+        raise
 
     return {
         "message": "Job posted successfully!",

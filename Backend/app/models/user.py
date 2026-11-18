@@ -10,6 +10,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String)  # "recruiter", "candidate", "admin"
+    auth_version = Column(Integer, nullable=False, default=0)
     jobs = relationship("Job", back_populates="recruiter")  # for recruiters
     applications = relationship("Application", back_populates="candidate")  # for candidates
     profile = relationship("Profile", back_populates="user", uselist=False)  # for candidates
