@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import './cvfetch.css';
+
+const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const statusLabel = (status) =>
   status === 1 ? 'Accepted' : status === 2 ? 'Rejected' : 'Pending';
@@ -18,16 +20,15 @@ export default function JobDetails() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [updatingApplications, setUpdatingApplications] = useState({});
 
-  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
-
-  const loadDetails = async () => {
+  const loadDetails = useCallback(async () => {
     const res = await axios.get(`${API_URL}/recruiter/job/${jobId}`, { headers: authHeader() });
     setJobTitle(res.data.job_title);
     setCompany(res.data.company);
     setIsOpen(res.data.is_open);
     setCandidates(res.data.candidates || []);
-  };
+  }, [jobId]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -39,7 +40,7 @@ export default function JobDetails() {
       if (err.response?.status === 401) navigate('/login');
       else setError(err.response?.data?.detail || 'Failed to load job details.');
     });
-  }, [jobId, navigate]);
+  }, [loadDetails, navigate]);
 
   const toggleExpand = (index) => {
     setExpandedIndex(expandedIndex === index ? null : index);
@@ -76,21 +77,24 @@ export default function JobDetails() {
     }
   };
 
-  const updateStatus = async (applicationId, action, index) => {
+  const updateStatus = async (applicationId, action) => {
     setError('');
+    setUpdatingApplications((prev) => ({ ...prev, [applicationId]: true }));
     try {
-      await axios.post(
+      const res = await axios.post(
         `${API_URL}/application/${applicationId}/${action}`,
         {},
         { headers: authHeader() }
       );
       setCandidates((prev) =>
-        prev.map((c, i) =>
-          i === index ? { ...c, status: action === 'accept' ? 1 : 2 } : c
+        prev.map((c) =>
+          c.application_id === applicationId ? { ...c, status: res.data.status } : c
         )
       );
     } catch (err) {
       setError(err.response?.data?.detail || `Failed to ${action} application.`);
+    } finally {
+      setUpdatingApplications((prev) => ({ ...prev, [applicationId]: false }));
     }
   };
 
@@ -188,26 +192,41 @@ export default function JobDetails() {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        <button
-                          className="accept-button"
-                          disabled={c.status === 1}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateStatus(c.application_id, 'accept', index);
-                          }}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          className="reject-button"
-                          disabled={c.status === 2}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateStatus(c.application_id, 'reject', index);
-                          }}
-                        >
-                          Reject
-                        </button>
+                        {c.status === 0 ? (
+                          <>
+                            <button
+                              className="accept-button"
+                              disabled={Boolean(updatingApplications[c.application_id])}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus(c.application_id, 'accept');
+                              }}
+                            >
+                              Accept
+                            </button>
+                            <button
+                              className="reject-button"
+                              disabled={Boolean(updatingApplications[c.application_id])}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateStatus(c.application_id, 'reject');
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="control-btn"
+                            disabled={Boolean(updatingApplications[c.application_id])}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateStatus(c.application_id, 'revert');
+                            }}
+                          >
+                            Revert
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -4,7 +4,7 @@ import nltk
 from nltk.corpus import wordnet as wn
 
 # Load once
-nltk.download('wordnet')
+
 default_synonyms = {
     "ml": ["machine learning", "ml"],
     "ai": ["artificial intelligence", "ai"],
@@ -12,14 +12,12 @@ default_synonyms = {
     "data analysis": ["data analytics", "data analysis"]
 }
 
-with open('synonym_dict.json', 'w') as f:
-    json.dump(default_synonyms, f)
+def create_synonym_mapping(text, json_mapping_file=None):
+    json_mapping = default_synonyms
+    if json_mapping_file:
+        with open(json_mapping_file) as f:
+            json_mapping = json.load(f)
 
-def create_synonym_mapping(text, json_mapping_file='synonym_dict.json'):
-    # Load JSON-based dictionary (custom synonyms)
-    with open(json_mapping_file, 'r') as f:
-        json_mapping = json.load(f)
-    
     synonym_mapping = {}
     
     # Add JSON synonyms

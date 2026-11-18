@@ -48,10 +48,10 @@ const fetchUserProfile = async (token) => {
   }
 };
 
-// ✅ Request a password reset token for an email
+// ✅ Request an emailed password-reset link
 const forgotPassword = async (email) => {
   const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
-  return response.data; // { message, reset_token }
+  return response.data; // { message }
 };
 
 // ✅ Reset the password using a reset token
