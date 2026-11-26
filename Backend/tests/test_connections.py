@@ -7,7 +7,7 @@ DB persistence and the response contract the frontend relies on.
 import io
 import pytest
 
-from conftest import _register, _login, _create_profile
+from conftest import _register, _login, _create_profile, pdf_bytes
 
 
 def _post_job(client, headers, title="Backend Engineer", company="Acme"):
@@ -15,7 +15,7 @@ def _post_job(client, headers, title="Backend Engineer", company="Acme"):
         "/job/upload",
         headers=headers,
         data={"title": title, "company": company},
-        files={"jd_file": ("jd.pdf", io.BytesIO(b"%PDF-1.4 jd"), "application/pdf")},
+        files={"jd_file": ("jd.pdf", io.BytesIO(pdf_bytes()), "application/pdf")},
     )
 
 
@@ -62,15 +62,18 @@ class TestAuth:
 
 
 class TestForgotPassword:
-    def test_forgot_unknown_email(self, client):
+    def test_forgot_unknown_email(self, client, sent_emails):
         r = client.post("/auth/forgot-password", json={"email": "nobody@test.com"})
-        assert r.status_code == 404
+        assert r.status_code == 200
+        assert "reset_token" not in r.json()
+        assert sent_emails == []
 
-    def test_reset_password_flow(self, client):
+    def test_reset_password_flow(self, client, sent_emails):
         _register(client, "resetu", "reset@test.com", "OldPass1!", "candidate")
         fp = client.post("/auth/forgot-password", json={"email": "reset@test.com"})
         assert fp.status_code == 200, fp.text
-        token = fp.json()["reset_token"]
+        assert "reset_token" not in fp.json()
+        token = sent_emails[-1]["token"]
 
         rp = client.post("/auth/reset-password", json={"token": token, "new_password": "NewPass1!"})
         assert rp.status_code == 200, rp.text
@@ -256,6 +259,7 @@ class TestAcceptReject:
         app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
         r = client.post(f"/application/{app_id}/accept", headers=recruiter_headers)
         assert r.status_code == 200, r.text
+        assert r.json()["status"] == 1
         dash = client.get("/candidate/dashboard", headers=candidate_headers).json()
         assert dash["applications"][0]["status"] == "Accepted"
 
@@ -263,6 +267,7 @@ class TestAcceptReject:
         app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
         r = client.post(f"/application/{app_id}/reject", headers=recruiter_headers)
         assert r.status_code == 200, r.text
+        assert r.json()["status"] == 2
         dash = client.get("/candidate/dashboard", headers=candidate_headers).json()
         assert dash["applications"][0]["status"] == "Rejected"
 
@@ -276,6 +281,36 @@ class TestAcceptReject:
 
     def test_accept_missing_application(self, client, recruiter_headers):
         assert client.post("/application/99999/accept", headers=recruiter_headers).status_code == 404
+
+    @pytest.mark.parametrize("decision", ["accept", "reject"])
+    def test_owner_can_revert_decision(self, client, recruiter_headers, candidate_headers, decision):
+        app_id, job_id = self._setup_application(client, recruiter_headers, candidate_headers)
+        client.post(f"/application/{app_id}/{decision}", headers=recruiter_headers)
+
+        response = client.post(f"/application/{app_id}/revert", headers=recruiter_headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["status"] == 0
+        dashboard = client.get("/candidate/dashboard", headers=candidate_headers).json()
+        assert dashboard["applications"][0]["status"] == "Pending"
+        jobs = client.get("/jobs", headers=candidate_headers).json()["jobs"]
+        assert next(job for job in jobs if job["id"] == job_id)["status"] == 0
+        details = client.get(f"/recruiter/job/{job_id}", headers=recruiter_headers).json()
+        assert details["candidates"][0]["status"] == 0
+
+        # Retrying the reset is safe, and the recruiter can make another decision.
+        assert client.post(f"/application/{app_id}/revert", headers=recruiter_headers).status_code == 200
+        assert client.post(f"/application/{app_id}/accept", headers=recruiter_headers).json()["status"] == 1
+
+    def test_revert_requires_job_owner(self, client, recruiter_headers, recruiter2_headers, candidate_headers):
+        app_id, _ = self._setup_application(client, recruiter_headers, candidate_headers)
+        client.post(f"/application/{app_id}/accept", headers=recruiter_headers)
+        assert client.post(f"/application/{app_id}/revert", headers=candidate_headers).status_code == 403
+        assert client.post(f"/application/{app_id}/revert", headers=recruiter2_headers).status_code == 403
+        dashboard = client.get("/candidate/dashboard", headers=candidate_headers).json()
+        assert dashboard["applications"][0]["status"] == "Accepted"
+
+    def test_revert_missing_application(self, client, recruiter_headers):
+        assert client.post("/application/99999/revert", headers=recruiter_headers).status_code == 404
 
 
 # ---- Job lifecycle: close + generate (Task 3) -------------------------------
@@ -346,20 +381,21 @@ class TestCloudinary:
     def test_job_upload_uses_raw_and_persists_url(self, client, recruiter_headers, upload_calls):
         r = _post_job(client, recruiter_headers, title="Data Sci", company="Umbrella")
         assert r.status_code == 200, r.text
-        jd_calls = [c for c in upload_calls if c["kwargs"].get("public_id", "").endswith("job_description")]
+        jd_calls = [c for c in upload_calls if "/jd/" in c["kwargs"].get("public_id", "")]
         assert jd_calls, upload_calls
         assert jd_calls[0]["kwargs"]["resource_type"] == "raw"
-        assert jd_calls[0]["kwargs"]["public_id"] == "Umbrella/Data_Sci/job_description"
+        assert jd_calls[0]["kwargs"]["public_id"].startswith(f"cv_align/jobs/{r.json()['job_id']}/jd/")
+        assert jd_calls[0]["kwargs"]["type"] == "authenticated"
         # The secure URL returned by Cloudinary is what gets persisted/returned.
-        assert r.json()["cloudinary_url"] == "https://fake.cloud/Umbrella/Data_Sci/job_description.pdf"
+        assert r.json()["cloudinary_url"].endswith(jd_calls[0]["kwargs"]["public_id"])
 
     def test_profile_upload_uses_raw_and_persists_url(self, client, candidate_headers, upload_calls):
         r = _create_profile(client, candidate_headers)
-        prof_calls = [c for c in upload_calls if c["kwargs"].get("public_id", "").startswith("profiles/")]
+        prof_calls = [c for c in upload_calls if c["kwargs"].get("public_id", "").startswith("cv_align/profiles/")]
         assert prof_calls, upload_calls
         assert prof_calls[0]["kwargs"]["resource_type"] == "raw"
         # The persisted resume_url matches the uploaded secure URL.
-        assert r.json()["resume_url"].startswith("https://fake.cloud/profiles/")
+        assert r.json()["resume_url"] == "/candidate/profile/resume"
 
     def test_apply_upload_params_and_scoring_join_key(self, client, recruiter_headers, candidate_headers, upload_calls):
         _create_profile(client, candidate_headers)
@@ -370,9 +406,10 @@ class TestCloudinary:
         assert resume_calls, upload_calls
         kw = resume_calls[-1]["kwargs"]
         assert kw["resource_type"] == "raw"
-        assert kw["overwrite"] is True
+        assert kw["overwrite"] is False
+        assert kw["type"] == "authenticated"
         public_id = kw["public_id"]
-        assert public_id.startswith("Initech/ML_Eng/resumes/")
+        assert public_id.startswith(f"cv_align/jobs/{job_id}/resumes/")
 
         # The stored resume URL must round-trip with the public_id so that the
         # scoring step (which keys results by the resume filename stem) maps
@@ -385,7 +422,7 @@ class TestCloudinary:
             appn = db.query(Application).filter(Application.job_id == job_id).first()
         finally:
             db.close()
-        assert appn.resume_path == f"https://fake.cloud/{public_id}"
+        assert appn.resume_path == f"https://res.cloudinary.com/test-cloud/raw/authenticated/v1/{public_id}"
         assert Path(appn.resume_path.split("?")[0]).stem == Path(public_id).stem
 
     def test_recruiter_resume_download_is_owner_only(self, client, recruiter_headers, recruiter2_headers, candidate_headers):

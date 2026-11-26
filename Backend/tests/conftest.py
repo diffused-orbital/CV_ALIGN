@@ -18,6 +18,12 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["JWT_SECRET_KEY"] = "synthetic-test-signing-secret-at-least-32-characters"
+os.environ["CLOUDINARY_CLOUD_NAME"] = "test-cloud"
+os.environ["CLOUDINARY_API_KEY"] = "synthetic-key"
+os.environ["CLOUDINARY_API_SECRET"] = "synthetic-secret"
+
 from app.database import Base
 import app.database as database_mod
 import app.routers.auth as auth_mod
@@ -66,7 +72,7 @@ def _fake_upload(*args, **kwargs):
     # uploads Cloudinary keeps an existing extension and appends the source
     # format only when the public_id has none.
     public_id = kwargs.get("public_id", "resource")
-    url = f"https://fake.cloud/{public_id}"
+    url = f"https://res.cloudinary.com/test-cloud/raw/authenticated/s--testsignature--/v1/{public_id}"
     if not public_id.lower().endswith(".pdf"):
         url += ".pdf"
     UPLOAD_CALLS.append({"source": args[0] if args else None, "kwargs": kwargs})
@@ -80,6 +86,9 @@ def _mock_external_services(monkeypatch):
 
     UPLOAD_CALLS.clear()
     monkeypatch.setattr(cloudinary.uploader, "upload", _fake_upload)
+    monkeypatch.setattr(cloudinary.uploader, "destroy", lambda *a, **k: {"result": "ok"})
+    import app.routers.application as application_mod
+    monkeypatch.setattr(application_mod, "download_pdf", lambda url: pdf_bytes())
     yield
 
 
@@ -139,7 +148,7 @@ def _create_profile(client, headers, full_name="Cand One", contact="9990001111",
     import io
     files = {}
     if with_resume:
-        files["resume"] = ("resume.pdf", io.BytesIO(b"%PDF-1.4 fake resume"), "application/pdf")
+        files["resume"] = ("resume.pdf", io.BytesIO(pdf_bytes()), "application/pdf")
     return client.post(
         "/candidate/profile",
         headers=headers,
@@ -158,3 +167,24 @@ def _create_profile(client, headers, full_name="Cand One", contact="9990001111",
 def candidate_with_profile(client, candidate_headers):
     _create_profile(client, candidate_headers)
     return candidate_headers
+
+
+def pdf_bytes():
+    from io import BytesIO
+    from PyPDF2 import PdfWriter
+    stream = BytesIO()
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    writer.write(stream)
+    return stream.getvalue()
+
+
+@pytest.fixture
+def sent_emails(monkeypatch):
+    import app.routers.auth as auth_mod
+    from app import config
+    monkeypatch.setattr(config, "SMTP_HOST", "127.0.0.1")
+    monkeypatch.setattr(config, "SMTP_FROM", "no-reply@cv-align.test")
+    messages = []
+    monkeypatch.setattr(auth_mod, "send_reset_email", lambda email, token, digest: messages.append({"email": email, "token": token}))
+    return messages

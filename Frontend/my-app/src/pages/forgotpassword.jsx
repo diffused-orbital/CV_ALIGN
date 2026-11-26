@@ -1,18 +1,22 @@
 import './login.css'; // reuse existing styles
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { forgotPassword, resetPassword } from '../api';
 import InlineMessage from '../components/InlineMessage';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [resetToken] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get('token') || '');
+  const step = resetToken ? 2 : 1;
   const [email, setEmail] = useState('');
-  const [resetToken, setResetToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (resetToken) window.history.replaceState(null, '', window.location.pathname);
+  }, [resetToken]);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();
@@ -20,10 +24,7 @@ export default function ForgotPassword() {
     setMessage('');
     try {
       const data = await forgotPassword(email);
-      // In production the token arrives by email; here we carry it forward.
-      setResetToken(data.reset_token);
-      setStep(2);
-      setMessage('Email verified. Choose a new password.');
+      setMessage(data.message);
     } catch (err) {
       setError(err.response?.data?.detail || 'Could not start password reset. Please try again.');
     }

@@ -78,7 +78,7 @@ export default function CandidateUpload() {
     data.append('file', formData.resume);
 
     try {
-      const res = await axios.post(`${API_URL}/apply`, data, {
+      await axios.post(`${API_URL}/apply`, data, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

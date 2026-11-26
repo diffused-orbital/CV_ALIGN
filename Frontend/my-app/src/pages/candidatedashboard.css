@@ -219,15 +219,15 @@
 
 .dashboard-bg {
   min-height: 100vh;
-  width: 100vw;
+  width: 100%;
   background-image: url('./background.jpg');
   background-size: cover;
   background-position: center;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   position: relative;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .dashboard-empty {
@@ -240,9 +240,9 @@
 }
 
 .dashboard-header {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
+  position: relative;
+  margin: 2rem 5% 0;
+  padding-right: 4rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -304,11 +304,10 @@
 
 /* --- Scrollable Table Area --- */
 .dashboard-table-scroll-wrap {
-  max-height: 340px;         /* Controls visible table height */
   width: 100%;
   display: flex;
   justify-content: center;
-  overflow-y: auto;
+  flex-shrink: 0;
   margin-bottom: 7vh; 
   scrollbar-width: thin;
   scrollbar-color: #888 #222;
@@ -399,7 +398,7 @@
 @media(max-width: 500px){
 
   .dashboard-header{
-    left: 1.25rem;
+    margin-left: 1.25rem;
   }
 
   .company-title {
@@ -508,10 +507,11 @@
 .profile-banner {
   position: relative;
   z-index: 2;
-  margin: 6.5rem auto 0.5rem;
+  margin: 1rem auto 0.5rem;
   max-width: 500px;
   width: 90%;
   padding: 0.7rem 1rem;
+  box-sizing: border-box;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);

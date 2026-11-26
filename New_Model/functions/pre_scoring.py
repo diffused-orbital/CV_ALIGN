@@ -1,14 +1,16 @@
+from functools import lru_cache
+import os
 import numpy as np
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer, util
 from . import others as ot  
 
 def generate_embeddings(texts: list) -> np.ndarray:
-    embeddings_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
+    embeddings_model = GoogleGenerativeAIEmbeddings(
+        model=os.getenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+    )
     embeddings = embeddings_model.embed_documents(texts)
     return np.array(embeddings)
 
@@ -17,7 +19,7 @@ def embedding_score(resume_sections: dict, jd_sections: dict) -> float:
     jd_text = ' '.join([' '.join(words) for words in jd_sections.values()])
     embeddings = generate_embeddings([resume_text, jd_text])
     similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
-    return similarity * 100
+    return max(0, min(1, float(similarity))) * 100
 
 # 5️⃣ TF-IDF score
 def tfidf_score(resume_text: str, jd_text: str) -> float:
@@ -28,7 +30,9 @@ def tfidf_score(resume_text: str, jd_text: str) -> float:
 
 # 6️⃣ Experience/Project score
    
-model = SentenceTransformer('all-MiniLM-L6-v2')
+@lru_cache(maxsize=1)
+def experience_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
 def experience_score(resume_sections, job_sections, synonym_mapping):
     """
     Use experience first; fallback to projects if no experience.
@@ -42,8 +46,8 @@ def experience_score(resume_sections, job_sections, synonym_mapping):
     experience_text = ot.apply_synonym_mapping(experience_text, synonym_mapping)
     job_experience_text = ot.apply_synonym_mapping(job_experience_text, synonym_mapping)
 
-    embeddings = model.encode([experience_text, job_experience_text], convert_to_tensor=True)
+    embeddings = experience_model().encode([experience_text, job_experience_text], convert_to_tensor=True)
     score = util.pytorch_cos_sim(embeddings[0], embeddings[1]).item()
 
 
-    return round(score, 4)
+    return round(max(0, min(1, score)) * 100, 4)

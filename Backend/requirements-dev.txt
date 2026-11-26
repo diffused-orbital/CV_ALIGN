@@ -1,3 +1,4 @@
 # Extra dependencies for running the backend test suite.
 pytest
 httpx
+aiosmtpd

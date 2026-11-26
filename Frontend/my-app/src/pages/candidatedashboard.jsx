@@ -1,8 +1,10 @@
 import './candidatedashboard.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
+
+const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const statusLabel = (status) =>
   status === 1 ? 'Accepted' : status === 2 ? 'Rejected' : 'Pending';
@@ -15,12 +17,10 @@ export default function CandidateDashboard() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
-
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async () => {
     const res = await axios.get(`${API_URL}/jobs`, { headers: authHeader() });
     setJobs(res.data.jobs || []);
-  };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -40,7 +40,7 @@ export default function CandidateDashboard() {
         else setError(err.response?.data?.detail || 'Failed to load dashboard.');
       }
     })();
-  }, [navigate]);
+  }, [navigate, loadJobs]);
 
   const handleApply = async (job) => {
     setError('');
@@ -105,7 +105,7 @@ export default function CandidateDashboard() {
           <div className="dashboard-table-header glass">
             <div>Job Title</div>
             <div>Company</div>
-            <div>Action</div>
+            <div>Status</div>
           </div>
 
           {visibleJobs.length === 0 ? (

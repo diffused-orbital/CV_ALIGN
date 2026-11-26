@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, Float, String, Text, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 class Application(Base):
     __tablename__ = "applications"
+    __table_args__ = (UniqueConstraint("user_id", "job_id", name="uq_application_user_job"),)
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
